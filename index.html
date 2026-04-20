@@ -617,14 +617,19 @@
       }
       .content-grid { width: 100%; }
 
-      /* DOPE card fills width; height expands to content */
-      .dope-card.card-horiz,
+      /* DOPE card fills width, maintains physical card aspect ratio */
+      .dope-card.card-horiz {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 5 / 3;
+        min-height: 0 !important;
+      }
       .dope-card.card-vert {
         width: 100% !important;
         height: auto !important;
+        aspect-ratio: 3 / 5;
         min-height: 0 !important;
       }
-      .dc-body { overflow: visible; height: auto; }
 
       /* Truing panels stack vertically, full width */
       .content-bottom {
@@ -1189,13 +1194,13 @@
 
 <!-- ── MOBILE TAB BAR ──────────────────────────────────── -->
 <nav class="mobile-tabs" id="mobileTabs">
-  <button class="mtab" data-tab="inputs" onclick="switchTab('inputs')">
-    <span class="mtab-icon">⚙</span>
-    <span class="mtab-label">Inputs</span>
-  </button>
   <button class="mtab" data-tab="card" onclick="switchTab('card')">
     <span class="mtab-icon">◫</span>
     <span class="mtab-label">Card</span>
+  </button>
+  <button class="mtab" data-tab="inputs" onclick="switchTab('inputs')">
+    <span class="mtab-icon">⚙</span>
+    <span class="mtab-label">Inputs</span>
   </button>
   <button class="mtab" data-tab="truing" onclick="switchTab('truing')">
     <span class="mtab-icon">◎</span>
@@ -2603,7 +2608,7 @@ function switchTab(tab) {
 
 function initMobileTabs() {
   if (window.innerWidth <= 860) {
-    switchTab('inputs');
+    switchTab('card');
   }
 }
 
