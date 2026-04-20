@@ -1,0 +1,2478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gusty · Wind drift DOPE cards</title>
+  <style>
+    /* ── RESET ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── TOKENS ─────────────────────────────────────────── */
+    :root {
+      --bg:         #0f0f0f;
+      --panel:      #181818;
+      --raised:     #212121;
+      --border:     #2e2e2e;
+      --accent:     #9b7d45;
+      --accent-dim: #5a4820;
+      --green:      #3d6b3d;
+      --green-dim:  #1e3a1e;
+      --text:       #d8d8d8;
+      --dim:        #5a5a5a;
+      --input-bg:   #161616;
+    }
+
+    /* ── BASE ────────────────────────────────────────────── */
+    html, body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      max-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      scrollbar-gutter: stable;
+    }
+
+    /* ── TOP BAR ─────────────────────────────────────────── */
+    .topbar {
+      height: 40px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .topbar-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 3.5px;
+      color: var(--accent);
+    }
+    .topbar-sub {
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 2px;
+    }
+    .topbar-gap { flex: 1; }
+    .topbar-status {
+      display: flex;
+      gap: 20px;
+      font-size: 10px;
+      color: var(--dim);
+    }
+    .topbar-status .sv { color: #5a9a5a; }
+
+    /* ── LAYOUT ──────────────────────────────────────────── */
+    .layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      justify-content: center;
+      min-width: 0;
+      width: 100%;
+    }
+    .layout-inner {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 0;
+      max-width: 100%;
+      width: 100%;
+      min-width: 0;
+      min-height: 0;
+      flex: 1 1 auto;
+      align-self: stretch;
+      box-sizing: border-box;
+      overflow-x: auto;
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+      overflow-anchor: none;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────── */
+    .sidebar {
+      flex-shrink: 0;
+      width: 260px;
+      min-width: 240px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow-x: hidden;
+      overflow-y: visible;
+      padding: 12px 10px;
+      margin-top: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .sidebar-right {
+      flex-shrink: 0;
+      width: 260px;
+      min-width: 240px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow-x: hidden;
+      overflow-y: visible;
+      padding: 12px 10px;
+      margin-top: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    /* scrollbar (main scroll is .layout-inner) */
+    .layout-inner::-webkit-scrollbar { width: 6px; }
+    .layout-inner::-webkit-scrollbar-track { background: transparent; }
+    .layout-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── SECTION CARDS ───────────────────────────────────── */
+    .scard {
+      background: var(--raised);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 11px;
+    }
+    .scard-head {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 9px;
+    }
+    .scard-head.scard-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .scard-head.scard-toggle:hover .scard-title { color: var(--text); }
+    .scard-head.scard-toggle:focus {
+      outline: 1px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .scard-title { flex: 1; min-width: 0; }
+    .scard-chevron {
+      font-size: 7px;
+      line-height: 1;
+      color: var(--dim);
+      flex-shrink: 0;
+      transition: transform 0.15s ease;
+    }
+    .scard.collapsed .scard-chevron { transform: rotate(-90deg); }
+    .scard.collapsed .scard-body { display: none; }
+    .scard.collapsed .scard-head.scard-toggle { margin-bottom: 0; }
+
+    /* ── FORM ELEMENTS ───────────────────────────────────── */
+    .fg { margin-bottom: 7px; }
+    .fg:last-child { margin-bottom: 0; }
+    label.lbl {
+      display: block;
+      font-size: 10px;
+      color: var(--dim);
+      margin-bottom: 3px;
+    }
+    input[type="number"],
+    input[type="text"],
+    select {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 7px;
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    select option { background: #1a1a1a; }
+
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+    .subnote {
+      font-size: 10px;
+      color: var(--dim);
+      line-height: 1.35;
+      margin-top: 7px;
+    }
+    .checkline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text);
+      margin-top: 7px;
+    }
+    .checkline input { width: auto; }
+
+    .loc-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 9px;
+    }
+    .loc-btn {
+      flex: 0 0 auto;
+      background: #1e5a94;
+      border: 1px solid #2b6cb0;
+      color: #e8f4ff;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      outline: none;
+    }
+    .loc-btn:hover {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .loc-btn:disabled { opacity: 0.55; cursor: wait; }
+    .save-settings-btn {
+      flex: 0 0 auto;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      outline: none;
+    }
+    .save-settings-btn:hover { border-color: var(--accent); }
+    .save-settings-btn:disabled { opacity: 0.55; cursor: wait; }
+    .loc-msg {
+      font-size: 10px;
+      color: var(--dim);
+      flex: 1;
+      min-width: 120px;
+      line-height: 1.35;
+    }
+
+    /* ── DRAG MODEL PICKER ───────────────────────────────── */
+    .drag-row { display: flex; gap: 7px; margin-bottom: 9px; }
+    .drag-btn {
+      flex: 1;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 7px 4px 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .drag-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+    .drag-btn .dbl { font-size: 15px; font-weight: 800; color: var(--text); line-height: 1; }
+    .drag-btn .dbs { font-size: 9px; color: var(--dim); margin-top: 3px; }
+    .drag-btn.active .dbs { color: var(--accent); }
+
+    .g7-note {
+      display: none;
+      background: var(--green-dim);
+      border: 1px solid #2a4a2a;
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 10px;
+      color: #7aaa7a;
+      margin-bottom: 9px;
+      line-height: 1.5;
+    }
+
+    /* ── TOGGLE PILLS (unit + columns) ───────────────────── */
+    .tog-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tog {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--dim);
+      user-select: none;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .tog input { display: none; }
+    .tog.on {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .tog-lock {
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* ── CLOCK FACE ──────────────────────────────────────── */
+    #clockSVG {
+      display: block;
+      margin: 4px auto 0;
+      flex-shrink: 0;
+    }
+    /* Fixed footprint so changing slot does not resize sidebar / layout */
+    #windDirCard .scard-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 218px;
+    }
+    .clock-meta {
+      text-align: center;
+      margin-top: 6px;
+      font-size: 11px;
+      line-height: 1.45;
+      height: 3.25em;
+      min-height: 3.25em;
+      max-height: 3.25em;
+      width: 100%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .cm-pos, .cm-val {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .cm-pos { font-weight: 600; color: var(--text); }
+    .cm-val { font-size: 10px; color: var(--accent); }
+    #clockDots circle { outline: none; }
+
+    /* ── MAIN CONTENT ────────────────────────────────────── */
+    .content {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 22px 80px 28px;
+      overflow-x: visible;
+      overflow-y: visible;
+      gap: 16px;
+      min-width: 5in;
+    }
+
+    /* ── DOPE CARD ───────────────────────────────────────── */
+    .dope-card {
+      background: #f5f0e6;
+      color: #111;
+      border: 2px solid #555;
+      border-radius: 5px;
+      overflow: hidden;
+      font-family: 'Courier New', Courier, monospace;
+      box-shadow: 0 8px 36px rgba(0,0,0,.7);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      flex-grow: 0;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    @media not print {
+      /* Preview matches print: 5in x 3in landscape or 3in x 5in portrait (CSS in; 1in = 96px) */
+      .dope-card.card-horiz {
+        width: 5in;
+        height: 3in;
+        max-width: none;
+      }
+      .dope-card.card-vert {
+        width: 3in;
+        height: 5in;
+        max-width: none;
+      }
+    }
+    .dc-body {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* card header */
+    .dc-head {
+      background: #172217;
+      color: #b0c8b0;
+      padding: 6px 10px 5px;
+      border-bottom: 2px solid #254025;
+      flex-shrink: 0;
+    }
+    .dc-head-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .dc-head-meta {
+      font-size: 7pt;
+      color: #7a9a7a;
+      margin-top: 3px;
+      line-height: 1.5;
+      /* Reserve two lines so clock / twist text wrapping does not change card outer height */
+      min-height: calc(1.5em * 2);
+    }
+
+    /* card table */
+    #dopeTable {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #dopeTable thead th {
+      background: #1e3020;
+      color: #9ab89a;
+      font-size: 7pt;
+      font-weight: 700;
+      padding: 3px 5px;
+      text-align: center;
+      letter-spacing: 0.3px;
+      border-bottom: 1px solid #254025;
+    }
+    #dopeTable thead th:first-child {
+      text-align: right;
+      padding-right: 7px;
+    }
+    #dopeTable tbody tr:nth-child(odd)  { background: #f5f0e6; }
+    #dopeTable tbody tr:nth-child(even) { background: #ede8dc; }
+    #dopeTable tbody td {
+      font-size: 9pt;
+      padding: 2.5px 5px;
+      text-align: center;
+      border-bottom: 1px solid #ddd5c8;
+    }
+    #dopeTable tbody td:first-child {
+      font-weight: 700;
+      border-right: 1px solid #c8bfb0;
+      text-align: right;
+      padding-right: 7px;
+    }
+    .warn-cell {
+      background: #fff0f0 !important;
+      color: #a03030 !important;
+      font-size: 8pt !important;
+      font-family: sans-serif !important;
+      padding: 4px 8px !important;
+    }
+
+    .dope-card.card-vert #dopeTable.layout-vert thead th {
+      font-size: 6pt;
+      padding: 2px 3px;
+    }
+    .dope-card.card-vert #dopeTable.layout-vert tbody td {
+      font-size: 7.5pt;
+      padding: 2px 3px;
+    }
+
+    /* ── PRINT BUTTON ────────────────────────────────────── */
+    .print-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 9px 28px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .print-btn:hover { background: #b08d55; }
+
+    /* ── TRUING ──────────────────────────────────────────── */
+    .true-clock-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .true-clock-lbl {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 5px;
+      align-self: flex-start;
+    }
+    .true-clock-meta {
+      text-align: center;
+      font-size: 10px;
+      color: var(--accent);
+      margin-top: 4px;
+      height: 2em;
+      line-height: 1.4;
+    }
+    .true-btn {
+      width: 100%;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 7px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background .15s, color .15s;
+    }
+    .true-btn:hover { background: var(--accent); color: #fff; }
+    .true-btn:disabled { opacity: 0.55; cursor: wait; }
+    .true-result {
+      font-size: 10px;
+      line-height: 1.55;
+      margin-top: 7px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      display: none;
+    }
+    .true-result.ok  { background: var(--green-dim); border: 1px solid #2a4a2a; color: #7aaa7a; }
+    .true-result.err { background: #3a1a1a; border: 1px solid #5a2a2a; color: #cc7a7a; }
+    .true-reset-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+    .true-reset-btn:hover { border-color: #aa4444; color: #cc7a7a; }
+    .bc-trued { border-color: var(--accent) !important; }
+
+    /* ── CONTENT LAYOUT ──────────────────────────────────── */
+    .content-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .content-bottom {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      justify-content: center;
+      margin-top: 64px;
+    }
+    .truing-panel {
+      flex: 0 0 230px;
+      width: 230px;
+    }
+
+    /* ── PRINT MEDIA ─────────────────────────────────────── */
+    @media print {
+      html, body {
+        background: white;
+        overflow: visible;
+        height: auto;
+      }
+      .topbar,
+      .sidebar,
+      .sidebar-right,
+      .print-btn,
+      .content-bottom { display: none !important; }
+      .layout  { display: block; overflow: visible; }
+      .layout-inner {
+        display: block;
+        padding: 0;
+      }
+      .content {
+        display: block;
+        padding: 0;
+        overflow: visible;
+      }
+      .content-grid { display: block; }
+      .dope-card.card-horiz {
+        width: 5in;
+        min-height: 3in;
+        aspect-ratio: unset;
+        box-shadow: none;
+        border: 1px solid #888;
+      }
+      .dope-card.card-vert {
+        width: 3in;
+        min-height: 5in;
+        aspect-ratio: unset;
+        box-shadow: none;
+        border: 1px solid #888;
+      }
+      .dc-body {
+        overflow: visible !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────── -->
+<div class="topbar">
+  <span class="topbar-title">GUSTY</span>
+  <span class="topbar-sub">WIND DRIFT DOPE CARDS</span>
+  <span class="topbar-gap"></span>
+</div>
+
+<!-- ── APP LAYOUT ───────────────────────────────────────── -->
+<div class="layout">
+  <div class="layout-inner">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <div class="sidebar">
+
+    <!-- BULLET -->
+    <div class="scard" data-scard-key="bullet">
+      <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+        <span class="scard-title">Bullet</span>
+        <span class="scard-chevron" aria-hidden="true">▼</span>
+      </div>
+      <div class="scard-body">
+      <div class="fg">
+        <label class="lbl">Load Library</label>
+        <select id="bulletSel">
+          <option value="">— Select Load —</option>
+        </select>
+      </div>
+
+      <!-- Drag model -->
+      <div class="drag-row">
+        <div class="drag-btn active" id="dg1" onclick="setModel('G1')">
+          <div class="dbl">G1</div>
+          <div class="dbs">★ Rimfire</div>
+        </div>
+        <div class="drag-btn" id="dg7" onclick="setModel('G7')">
+          <div class="dbl">G7</div>
+          <div class="dbs">Boat-tail</div>
+        </div>
+      </div>
+      <div class="g7-note" id="g7Note" style="display: none">
+        G7 is for boat-tail spitzer bullets (most modern centerfire match).
+        Use the manufacturer's <b>G7 BC</b> &mdash; it is <i>not</i> a scaled
+        G1 number. Library values are G1 BCs.
+      </div>
+
+      <div class="g2">
+        <div class="fg">
+          <label class="lbl">BC &nbsp;<span id="bcLbl" style="color:var(--accent)">(G1)</span></label>
+          <input type="number" id="bc" value="0.172" step="0.001" min="0.01" max="1.5">
+        </div>
+        <div class="fg">
+          <label class="lbl">Grain (gr)</label>
+          <input type="number" id="grain" value="40" step="1" min="1" max="999">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="lbl">Muzzle Velocity (fps)</label>
+        <input type="number" id="fps" value="1073" step="10" min="100" max="5000">
+      </div>
+      </div>
+    </div>
+
+    <!-- RANGE -->
+    <div class="scard" data-scard-key="range">
+      <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+        <span class="scard-title">Range</span>
+        <span class="scard-chevron" aria-hidden="true">▼</span>
+      </div>
+      <div class="scard-body">
+      <div class="g3">
+        <div class="fg">
+          <label class="lbl">Start (yds)</label>
+          <input type="number" id="rStart" value="25" step="5" min="5">
+        </div>
+        <div class="fg">
+          <label class="lbl">End (yds)</label>
+          <input type="number" id="rEnd" value="250" step="25" min="10">
+        </div>
+        <div class="fg">
+          <label class="lbl">Step (yds)</label>
+          <input type="number" id="rStep" value="25" step="5" min="1">
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- WIND SPEEDS -->
+    <div class="scard" data-scard-key="windSpd">
+      <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+        <span class="scard-title">Wind Speeds (mph)</span>
+        <span class="scard-chevron" aria-hidden="true">▼</span>
+      </div>
+      <div class="scard-body">
+      <div class="g3">
+        <div class="fg">
+          <label class="lbl">Wind 1</label>
+          <input type="number" id="w1" value="5" step="1" min="0" max="100">
+        </div>
+        <div class="fg">
+          <label class="lbl">Wind 2</label>
+          <input type="number" id="w2" value="10" step="1" min="0" max="100">
+        </div>
+        <div class="fg">
+          <label class="lbl">Wind 3</label>
+          <input type="number" id="w3" value="15" step="1" min="0" max="100">
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- WIND DIRECTION CLOCK -->
+    <div class="scard" id="windDirCard" data-scard-key="windDir">
+      <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+        <span class="scard-title">Wind Direction</span>
+        <span class="scard-chevron" aria-hidden="true">▼</span>
+      </div>
+      <div class="scard-body">
+
+      <svg id="clockSVG" width="168" height="168" viewBox="0 0 200 200" aria-label="Wind direction clock">
+        <!-- background -->
+        <circle cx="100" cy="100" r="97" fill="#0e1a0e" stroke="#253a25" stroke-width="1.5"/>
+        <!-- inner ring guide -->
+        <circle cx="100" cy="100" r="76" fill="none" stroke="#1a2e1a" stroke-width="0.7" stroke-dasharray="3 11.9"/>
+        <!-- center dot -->
+        <circle cx="100" cy="100" r="3" fill="#3a6a3a"/>
+
+        <!-- cardinal labels -->
+        <text x="100" y="14"  text-anchor="middle" fill="#3a6a3a" font-size="11" font-family="'Courier New',monospace" font-weight="bold">12</text>
+        <text x="191" y="104" text-anchor="middle" fill="#3a6a3a" font-size="11" font-family="'Courier New',monospace" font-weight="bold">3</text>
+        <text x="100" y="193" text-anchor="middle" fill="#3a6a3a" font-size="11" font-family="'Courier New',monospace" font-weight="bold">6</text>
+        <text x="9"   y="104" text-anchor="middle" fill="#3a6a3a" font-size="11" font-family="'Courier New',monospace" font-weight="bold">9</text>
+
+        <!-- FV labels at 3 and 9 -->
+        <text x="175" y="118" text-anchor="middle" fill="#2a5a2a" font-size="7.5" font-family="'Courier New',monospace">FV</text>
+        <text x="25"  y="118" text-anchor="middle" fill="#2a5a2a" font-size="7.5" font-family="'Courier New',monospace">FV</text>
+
+        <!-- Arrow markers -->
+        <defs>
+          <marker id="ah" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto">
+            <polygon points="0 0, 6 2.5, 0 5" fill="#d4a840"/>
+          </marker>
+          <marker id="at" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+            <circle cx="2.5" cy="2.5" r="2" fill="#d4a840" fill-opacity="0.55"/>
+          </marker>
+        </defs>
+
+        <!-- Wind arrow (managed by JS) -->
+        <line id="windArrow"
+              x1="55" y1="100" x2="145" y2="100"
+              stroke="#d4a840" stroke-width="2"
+              marker-end="url(#ah)"
+              marker-start="url(#at)"
+              visibility="hidden"/>
+
+        <!-- Hour dots (added by JS) -->
+        <g id="clockDots"></g>
+      </svg>
+
+      <div class="clock-meta">
+        <div class="cm-pos" id="cmPos">Click a position to set wind direction</div>
+        <div class="cm-val" id="cmVal">&nbsp;</div>
+      </div>
+      </div>
+    </div>
+
+    <!-- DISPLAY OPTIONS -->
+    <div class="scard" data-scard-key="display">
+      <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+        <span class="scard-title">Display</span>
+        <span class="scard-chevron" aria-hidden="true">▼</span>
+      </div>
+      <div class="scard-body">
+      <div style="margin-bottom:9px">
+        <label class="lbl" style="margin-bottom:4px">Unit</label>
+        <div class="tog-row">
+          <label class="tog on" id="togMIL">
+            <input type="radio" name="unit" value="MIL" checked>MIL
+          </label>
+          <label class="tog" id="togMOA">
+            <input type="radio" name="unit" value="MOA">MOA
+          </label>
+        </div>
+      </div>
+      <div>
+        <label class="lbl" style="margin-bottom:4px">Columns</label>
+        <div class="tog-row">
+          <span class="tog on tog-lock" title="Always on card">Wind 1</span>
+          <label class="tog on" id="togW2">
+            <input type="checkbox" id="chkW2" checked>Wind 2
+          </label>
+          <label class="tog on" id="togW3">
+            <input type="checkbox" id="chkW3" checked>Wind 3
+          </label>
+          <label class="tog" id="togIn">
+            <input type="checkbox" id="chkIn">Inches
+          </label>
+          <label class="tog" id="togVel">
+            <input type="checkbox" id="chkVel">Velocity
+          </label>
+        </div>
+      </div>
+      <div style="margin-top:9px">
+        <label class="lbl" style="margin-bottom:4px">Card layout</label>
+        <div class="tog-row">
+          <label class="tog on" id="togOrientH">
+            <input type="radio" name="cardOrient" value="horiz" checked>Horizontal 5×3
+          </label>
+          <label class="tog" id="togOrientV">
+            <input type="radio" name="cardOrient" value="vert">Vertical 3×5
+          </label>
+        </div>
+      </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- ══════════ MAIN CONTENT ══════════ -->
+  <div class="content">
+
+    <div class="content-grid">
+
+      <div class="dope-card card-horiz" id="dopeCard">
+          <div class="dc-head">
+            <div class="dc-head-title" id="dcTitle">GUSTY</div>
+            <div class="dc-head-meta" id="dcMeta"></div>
+          </div>
+          <div class="dc-body">
+            <table id="dopeTable">
+              <thead><tr id="tHead"></tr></thead>
+              <tbody id="tBody">
+                <tr>
+                  <td colspan="14" style="padding:20px;text-align:center;font-family:sans-serif;font-size:11px;color:#888;background:#f5f0e6">
+                    Configure inputs on the left &mdash; the card updates automatically.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      <button class="print-btn" onclick="window.print()">&#10704;&nbsp; Print Card</button>
+
+      <div class="content-bottom">
+
+        <!-- WIND TRUING -->
+        <div class="scard truing-panel" data-scard-key="windTruing">
+          <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+            <span class="scard-title">Wind Truing</span>
+            <span class="scard-chevron" aria-hidden="true">▼</span>
+          </div>
+          <div class="scard-body">
+          <div class="subnote" style="margin-top:0;margin-bottom:8px">
+            Enter a total wind hold (including spin drift) from your ballistic calculator or field data. Gusty back-solves the effective BC that reproduces it, then updates the card.
+          </div>
+          <div class="fg">
+            <label class="lbl">Observed range (yds)</label>
+            <input type="number" id="trueRange" value="100" step="5" min="10" max="500">
+          </div>
+          <div class="fg">
+            <label class="lbl">Wind speed (mph)</label>
+            <input type="number" id="trueWindMph" value="10" step="1" min="1" max="100">
+          </div>
+          <div class="true-clock-wrap">
+            <div class="true-clock-lbl">Wind Direction at Truing Shot</div>
+            <svg id="trueClockSVG" width="140" height="140" viewBox="0 0 200 200" style="cursor:pointer" aria-label="Truing wind direction">
+              <circle cx="100" cy="100" r="97" fill="#0e1a0e" stroke="#253a25" stroke-width="1.5"/>
+              <circle cx="100" cy="100" r="76" fill="none" stroke="#1a2e1a" stroke-width="0.7" stroke-dasharray="3 11.9"/>
+              <circle cx="100" cy="100" r="3" fill="#3a6a3a"/>
+              <text x="100" y="14"  text-anchor="middle" fill="#3a6a3a" font-size="11" font-family="'Courier New',monospace" font-weight="bold">12</text>
+              <text x="191" y="104" text-anchor="middle" fill="#3a6a3a" font-size="11" font-family="'Courier New',monospace" font-weight="bold">3</text>
+              <text x="100" y="193" text-anchor="middle" fill="#3a6a3a" font-size="11" font-family="'Courier New',monospace" font-weight="bold">6</text>
+              <text x="9"   y="104" text-anchor="middle" fill="#3a6a3a" font-size="11" font-family="'Courier New',monospace" font-weight="bold">9</text>
+              <text x="175" y="118" text-anchor="middle" fill="#2a5a2a" font-size="7.5" font-family="'Courier New',monospace">FV</text>
+              <text x="25"  y="118" text-anchor="middle" fill="#2a5a2a" font-size="7.5" font-family="'Courier New',monospace">FV</text>
+              <defs>
+                <marker id="tah" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto">
+                  <polygon points="0 0, 6 2.5, 0 5" fill="#d4a840"/>
+                </marker>
+                <marker id="tat" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+                  <circle cx="2.5" cy="2.5" r="2" fill="#d4a840" fill-opacity="0.55"/>
+                </marker>
+              </defs>
+              <line id="trueWindArrow" x1="55" y1="100" x2="145" y2="100"
+                    stroke="#d4a840" stroke-width="2"
+                    marker-end="url(#tah)" marker-start="url(#tat)"
+                    visibility="hidden"/>
+              <g id="trueClockDots"></g>
+            </svg>
+            <div class="true-clock-meta" id="trueClockMeta">Click to set wind direction</div>
+          </div>
+          <div class="fg">
+            <label class="lbl">Observed hold (<span id="trueUnitLbl">MIL</span>) — total hold, positive number</label>
+            <input type="number" id="trueHold" step="0.01" min="0.01" placeholder="e.g. 2.31">
+          </div>
+          <button type="button" class="true-btn" id="btnTrue">Solve &amp; Apply BC</button>
+          <div class="true-result" id="trueResult"></div>
+          <button type="button" class="true-reset-btn" id="btnTrueReset" style="display:none">✕ Clear wind truing / restore BC</button>
+          </div>
+        </div>
+
+        <!-- VELOCITY TRUING -->
+        <div class="scard truing-panel" data-scard-key="velTruing">
+          <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+            <span class="scard-title">Velocity Truing</span>
+            <span class="scard-chevron" aria-hidden="true">▼</span>
+          </div>
+          <div class="scard-body">
+          <div class="subnote" style="margin-top:0;margin-bottom:8px">
+            Enter the actual bullet velocity at a known range from a chronograph or ballistic calculator. Gusty will solve for the effective BC that matches that velocity, improving wind hold accuracy.
+          </div>
+          <div class="fg">
+            <label class="lbl">Range (yds)</label>
+            <input type="number" id="velTrueRange" value="100" step="5" min="10" max="500">
+          </div>
+          <div class="fg">
+            <label class="lbl">Observed FPS</label>
+            <input type="number" id="velTrueFps" step="1" min="100" max="5000" placeholder="e.g. 944">
+          </div>
+          <button type="button" class="true-btn" id="btnVelTrue">Solve &amp; Apply BC</button>
+          <div class="true-result" id="velTrueResult"></div>
+          <button type="button" class="true-reset-btn" id="btnVelTrueReset" style="display:none">✕ Clear velocity truing / restore BC</button>
+          </div>
+        </div>
+
+      </div><!-- /content-bottom -->
+
+    </div><!-- /content-grid -->
+
+  </div><!-- /content -->
+
+  <!-- ══════════ RIGHT SIDEBAR ══════════ -->
+  <div class="sidebar-right">
+
+    <!-- CARD LABEL -->
+    <div class="scard" data-scard-key="cardLabel">
+      <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+        <span class="scard-title">Card Label</span>
+        <span class="scard-chevron" aria-hidden="true">▼</span>
+      </div>
+      <div class="scard-body">
+      <div class="fg">
+        <label class="lbl">Custom title (optional)</label>
+        <input type="text" id="cardTitle" placeholder="Vudoo / RimX">
+      </div>
+      </div>
+    </div>
+
+    <!-- ATMOSPHERE CONDITIONS -->
+    <div class="scard atmo-panel" data-scard-key="atmo">
+      <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+        <span class="scard-title">Atmosphere Conditions</span>
+        <span class="scard-chevron" aria-hidden="true">▼</span>
+      </div>
+      <div class="scard-body">
+      <div class="loc-row" style="margin-bottom:6px">
+        <input type="text" id="zipCode" placeholder="ZIP code (US)" maxlength="5"
+               style="width:110px;flex-shrink:0;letter-spacing:1px"
+               inputmode="numeric" pattern="[0-9]{5}">
+        <button type="button" class="loc-btn" id="btnZip">Look up ZIP</button>
+        <button type="button" class="loc-btn" id="btnLocate">Locate me</button>
+      </div>
+      <div class="loc-row" style="margin-top:0">
+        <button type="button" class="save-settings-btn" id="btnSaveSettings">Save settings</button>
+        <span class="loc-msg" id="locMsg">ZIP or Locate fills elevation, lat, temp, humidity &amp; pressure via Open-Meteo.</span>
+      </div>
+      <div class="loc-row" style="margin-top:-4px;margin-bottom:6px">
+        <span class="loc-msg" id="saveMsg" style="min-width:100%"></span>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <label class="lbl">Elevation (ft)</label>
+          <input type="number" id="elevFt" value="5700" step="100">
+        </div>
+        <div class="fg">
+          <label class="lbl">Latitude (deg)</label>
+          <input type="number" id="latDeg" value="39.5" step="0.1" min="-90" max="90">
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <label class="lbl">Temperature (°F)</label>
+          <input type="number" id="tempF" value="59" step="1">
+        </div>
+        <div class="fg">
+          <label class="lbl">Humidity (%)</label>
+          <input type="number" id="humidity" value="50" step="1" min="0" max="100">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="lbl">Station Pressure (inHg)</label>
+        <input type="number" id="pressure" step="0.01" min="10" max="40" placeholder="Leave blank = auto from elevation">
+      </div>
+      <label class="checkline">
+        <input type="checkbox" id="chkCor" checked>
+        Apply Coriolis automatically
+      </label>
+      <div class="subnote">
+        Latitude + azimuth drive Coriolis. If station pressure is blank, pressure is derived from elevation.
+      </div>
+      </div>
+    </div>
+
+    <!-- RIFLE DETAILS -->
+    <div class="scard" data-scard-key="rifleDetails">
+      <div class="scard-head scard-toggle" role="button" tabindex="0" aria-expanded="true" data-scard-toggle>
+        <span class="scard-title">Rifle Details</span>
+        <span class="scard-chevron" aria-hidden="true">▼</span>
+      </div>
+      <div class="scard-body">
+      <div class="g2">
+        <div class="fg">
+          <label class="lbl">Fire Azimuth (° true)</label>
+          <input type="number" id="azimuthDeg" value="0" step="1" min="0" max="360">
+        </div>
+        <div class="fg">
+          <label class="lbl">Twist (in / turn)</label>
+          <input type="number" id="twistIn" value="16" step="0.1" min="1">
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <label class="lbl">Bullet Dia (in)</label>
+          <input type="number" id="bulletDia" value="0.223" step="0.001" min="0.01">
+        </div>
+        <div class="fg">
+          <label class="lbl">Bullet Length (in)</label>
+          <input type="number" id="bulletLen" value="0.500" step="0.001" min="0.05">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="lbl">Twist Direction</label>
+        <select id="twistDir">
+          <option value="1" selected>Right-hand (RH)</option>
+          <option value="-1">Left-hand (LH)</option>
+        </select>
+      </div>
+      <label class="checkline">
+        <input type="checkbox" id="chkSpin" checked>
+        Apply spin drift estimate automatically
+      </label>
+      <div class="subnote">
+        Spin drift uses the Miller stability estimate plus the Litz field formula, so it is an estimate rather than a 6-DoF solve.
+        Fire azimuth is not set by Locate me (use a compass or map bearing).
+      </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar-right -->
+
+  </div><!-- /layout-inner -->
+</div><!-- /layout -->
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════
+   BULLET LIBRARY
+   All BC values are G1 unless otherwise noted.
+   Velocities are nominal muzzle velocities (fps).
+═══════════════════════════════════════════════════════════ */
+const LIBRARY = [
+  // ── Eley ──────────────────────────────────────────────
+  { brand:'Eley',       name:'Eley Tenex',               gr:40, fps:1085, bc:0.150 },
+  { brand:'Eley',       name:'Eley Match',                gr:40, fps:1085, bc:0.140 },
+  { brand:'Eley',       name:'Eley Contact',              gr:40, fps:1085, bc:0.162 },
+  { brand:'Eley',       name:'Eley Edge',                 gr:40, fps:1085, bc:0.162 },
+  { brand:'Eley',       name:'Eley Club',                 gr:40, fps:1085, bc:0.135 },
+  // ── SK ────────────────────────────────────────────────
+  { brand:'SK',         name:'SK Standard Plus',          gr:40, fps:1073, bc:0.150 },
+  { brand:'SK',         name:'SK Rifle Match',            gr:40, fps:1083, bc:0.162 },
+  { brand:'SK',         name:'SK Long Range Match',       gr:40, fps:1073, bc:0.200 },
+  // ── Lapua ─────────────────────────────────────────────
+  { brand:'Lapua',      name:'Lapua Center-X',            gr:40, fps:1073, bc:0.172 },
+  { brand:'Lapua',      name:'Lapua Midas+',              gr:40, fps:1073, bc:0.172 },
+  { brand:'Lapua',      name:'Lapua Long Range',          gr:40, fps:1083, bc:0.200 },
+  // ── RWS ───────────────────────────────────────────────
+  { brand:'RWS',        name:'RWS R50',                   gr:40, fps:1033, bc:0.162 },
+  { brand:'RWS',        name:'RWS Club',                  gr:40, fps:1033, bc:0.140 },
+  // ── CCI ───────────────────────────────────────────────
+  { brand:'CCI',        name:'CCI Standard Velocity',     gr:40, fps:1070, bc:0.129 },
+  { brand:'CCI',        name:'CCI Mini-Mag',              gr:40, fps:1235, bc:0.126 },
+  { brand:'CCI',        name:'CCI Quiet',                 gr:40, fps:710,  bc:0.129 },
+  { brand:'CCI',        name:'CCI Velocitor',             gr:40, fps:1435, bc:0.112 },
+  // ── Federal ───────────────────────────────────────────
+  { brand:'Federal',    name:'Federal AutoMatch',         gr:40, fps:1200, bc:0.129 },
+  { brand:'Federal',    name:'Federal Gold Medal',        gr:40, fps:1080, bc:0.140 },
+  // ── Winchester ────────────────────────────────────────
+  { brand:'Winchester', name:'Winchester M-22',           gr:40, fps:1255, bc:0.150 },
+  { brand:'Winchester', name:'Winchester Super-X',        gr:40, fps:1300, bc:0.126 },
+  // ── Remington ─────────────────────────────────────────
+  { brand:'Remington',  name:'Remington Subsonic HP',     gr:38, fps:1050, bc:0.100 },
+  { brand:'Remington',  name:'Remington Target',          gr:40, fps:1150, bc:0.129 },
+  // ── Wolf ──────────────────────────────────────────────
+  { brand:'Wolf',       name:'Wolf Match Target',         gr:40, fps:1050, bc:0.140 },
+  // ── Norma ─────────────────────────────────────────────
+  { brand:'Norma',      name:'Norma TAC-22',              gr:40, fps:1100, bc:0.129 },
+];
+
+/* ═══════════════════════════════════════════════════════════
+   BALLISTICS ENGINE — Mach-indexed G1 / G7 drag-table integrator
+
+   Physics (flat-fire, ICAO standard atmosphere):
+
+       dV/dt  = − K · ρ · Cd_std(M) · V² / BC      [fps²]
+       K      = π / 1152  ≈ 0.002727
+       ρ      = 0.0751265 lb/ft³  (ICAO ballistic standard)
+       M      = V / 1116.45 fps   (speed of sound at 59°F)
+       BC     = lb/in² , drag-model specific (G1 BC ≠ G7 BC)
+       Cd_std = standard-projectile drag coefficient, looked up
+                from G1 or G7 tables (published Mayevski/Siacci
+                tables, used by JBM, Litz, Hornady, etc.)
+
+   Wind drift uses the Siacci lag-time (first-order crosswind):
+       Drift_ft = wind_fps · ( TOF(x) − x / V0 ) · mult_clock
+   For standard-velocity rimfire (MV ≤ 1250 fps, G1 BC ≤ 0.22) the
+   plain lag term is scaled by RIMFIRE_WIND_LAG_CORRECT (~1.35) so
+   holds track Lapua / doppler-style tables (~1 mil per 10 mph @ 100 yd).
+   Faster .22 loads and all centerfire use scale 1.
+
+   Integrated with a small-step midpoint method (≈0.5 ms),
+   exact velocity & TOF interpolated at each whole yard.
+   Lapua Center-X class (40 gr, ~1073 fps, G1 BC 0.172): V@100 yd ≈ 970 fps.
+═══════════════════════════════════════════════════════════ */
+const SPEED_OF_SOUND  = 1116.45;     // fps, 59°F sea level
+const STD_AIR_DENSITY = 0.0751265;   // lb/ft³, ICAO ballistic
+const DRAG_K_CONST    = Math.PI / 1152;
+const EARTH_OMEGA     = 7.2921159e-5;
+const INHG_TO_PA      = 3386.389;
+const LBFT3_PER_KGM3  = 0.0624279606;
+
+/* Standard G1 drag function — Mach → Cd (Mayevski/Siacci) */
+const G1_TABLE = [
+  [0.00,0.2629],[0.05,0.2558],[0.10,0.2487],[0.15,0.2413],
+  [0.20,0.2344],[0.25,0.2278],[0.30,0.2214],[0.35,0.2155],
+  [0.40,0.2104],[0.45,0.2061],[0.50,0.2032],[0.55,0.2020],
+  [0.60,0.2034],[0.65,0.2165],[0.70,0.2230],[0.75,0.2313],
+  [0.80,0.2417],[0.85,0.2546],[0.875,0.2614],[0.90,0.2685],
+  [0.925,0.2776],[0.95,0.2899],[0.975,0.3098],[1.00,0.3354],
+  [1.025,0.3804],[1.05,0.4015],[1.075,0.4043],[1.10,0.4061],
+  [1.125,0.4055],[1.15,0.4041],[1.20,0.3999],[1.25,0.3938],
+  [1.30,0.3868],[1.35,0.3792],[1.40,0.3712],[1.50,0.3551],
+  [1.60,0.3388],[1.70,0.3232],[1.80,0.3092],[1.90,0.2975],
+  [2.00,0.2871],[2.20,0.2698],[2.40,0.2562],[2.60,0.2451],
+  [2.80,0.2357],[3.00,0.2273],[3.50,0.2094],[4.00,0.1947],
+  [5.00,0.1711],
+];
+
+/* Standard G7 drag function — Mach → Cd (boat-tail spitzer) */
+const G7_TABLE = [
+  [0.00,0.1198],[0.05,0.1197],[0.10,0.1196],[0.15,0.1194],
+  [0.20,0.1193],[0.25,0.1194],[0.30,0.1194],[0.35,0.1194],
+  [0.40,0.1193],[0.45,0.1193],[0.50,0.1194],[0.55,0.1193],
+  [0.60,0.1194],[0.65,0.1197],[0.70,0.1202],[0.725,0.1207],
+  [0.75,0.1215],[0.775,0.1226],[0.80,0.1242],[0.825,0.1266],
+  [0.85,0.1306],[0.875,0.1368],[0.90,0.1464],[0.925,0.1660],
+  [0.95,0.2054],[0.975,0.2993],[1.00,0.3803],[1.025,0.4015],
+  [1.05,0.4043],[1.075,0.4034],[1.10,0.4014],[1.125,0.3987],
+  [1.15,0.3955],[1.20,0.3884],[1.25,0.3810],[1.30,0.3732],
+  [1.35,0.3657],[1.40,0.3580],[1.50,0.3440],[1.60,0.3315],
+  [1.70,0.3209],[1.80,0.3117],[1.90,0.3042],[2.00,0.2980],
+  [2.20,0.2864],[2.40,0.2752],[2.60,0.2643],[2.80,0.2533],
+  [3.00,0.2424],[3.50,0.2154],[4.00,0.1935],[5.00,0.1618],
+];
+
+function cdLookup(table, mach) {
+  if (mach <= table[0][0])                  return table[0][1];
+  if (mach >= table[table.length - 1][0])   return table[table.length - 1][1];
+  let lo = 0, hi = table.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (table[mid][0] <= mach) lo = mid; else hi = mid;
+  }
+  const [m0, c0] = table[lo];
+  const [m1, c1] = table[hi];
+  return c0 + (c1 - c0) * (mach - m0) / (m1 - m0);
+}
+
+function stdPressureInHgFromElevation(elevFt) {
+  const hM = Math.max(-1500, elevFt) * 0.3048;
+  const pPa = 101325 * Math.pow(1 - 2.25577e-5 * hM, 5.25588);
+  return pPa / INHG_TO_PA;
+}
+
+function speedOfSoundFps(tempF) {
+  return SPEED_OF_SOUND * Math.sqrt((tempF + 459.67) / 518.67);
+}
+
+function airDensityLbFt3(tempF, pressureInHg, humidityPct) {
+  const tempC = (tempF - 32) * 5 / 9;
+  const tempK = tempC + 273.15;
+  const pPa   = pressureInHg * INHG_TO_PA;
+  const rh    = Math.min(Math.max(humidityPct / 100, 0), 1);
+  const esPa  = 610.94 * Math.exp((17.625 * tempC) / (tempC + 243.04));
+  const pvPa  = Math.min(pPa * 0.99, rh * esPa);
+  const pdPa  = pPa - pvPa;
+  const rhoKg = pdPa / (287.05 * tempK) + pvPa / (461.495 * tempK);
+  return rhoKg * LBFT3_PER_KGM3;
+}
+
+function millerStability(gr, diaIn, lenIn, twistIn, tempF, pressureInHg, fps) {
+  if (gr <= 0 || diaIn <= 0 || lenIn <= 0 || twistIn <= 0 || pressureInHg <= 0 || fps <= 0) return 0;
+  const lCal  = lenIn / diaIn;
+  const tCal  = twistIn / diaIn;
+  const tempR = tempF + 459.67;
+  return (30 * gr / (tCal * tCal * Math.pow(diaIn, 3) * lCal * (1 + lCal * lCal))) *
+    Math.pow(fps / 2800, 1 / 3) *
+    (tempR / 518.67) *
+    (29.92 / pressureInHg);
+}
+
+function estimateSpinDriftInches(tof, sg, twistDir) {
+  if (tof <= 0 || sg <= 0 || !twistDir) return 0;
+  return twistDir * 1.25 * (sg + 1.2) * Math.pow(tof, 1.83);
+}
+
+function buildTrajectory(V0, BC, model, maxYards, env, corrections) {
+  const table = model === 'G7' ? G7_TABLE : G1_TABLE;
+  const rho   = env.rho || STD_AIR_DENSITY;
+  const sos   = env.sos || SPEED_OF_SOUND;
+  const useCor = !!corrections.useCor;
+  const sinLat = Math.sin(corrections.latRad || 0);
+  const cosLat = Math.cos(corrections.latRad || 0);
+  const sinAz  = Math.sin(corrections.azimuthRad || 0);
+  const data  = { 0: { tof: 0, vel: V0, corLatIn: 0, corVertIn: 0 } };
+
+  let v = V0, t = 0, x = 0;                 // x in feet, t in sec
+  let pV = V0, pT = 0, pX = 0;
+  let corLatFt = 0, corLatVel = 0, corVertFt = 0, corVertVel = 0;
+  let pCorLatFt = 0, pCorVertFt = 0;
+  const dt = 0.0005;                        // 0.5 ms step
+  const accel = (vv) => {
+    const cd = cdLookup(table, vv / sos);
+    return -DRAG_K_CONST * rho * cd * vv * vv / BC;
+  };
+
+  for (let y = 1; y <= maxYards; y++) {
+    const targetFt = y * 3;
+    while (x < targetFt && v > 50) {
+      pV = v; pT = t; pX = x; pCorLatFt = corLatFt; pCorVertFt = corVertFt;
+      // 2nd-order midpoint integration in time
+      const a1   = accel(v);
+      const vMid = v + 0.5 * a1 * dt;
+      const a2   = accel(vMid);
+      const vNew = v + a2 * dt;
+      const corLatAcc  = useCor ? 2 * EARTH_OMEGA * sinLat * vMid : 0;
+      const corVertAcc = useCor ? 2 * EARTH_OMEGA * cosLat * sinAz * vMid : 0;
+      corLatFt += corLatVel * dt + 0.5 * corLatAcc * dt * dt;
+      corLatVel += corLatAcc * dt;
+      corVertFt += corVertVel * dt + 0.5 * corVertAcc * dt * dt;
+      corVertVel += corVertAcc * dt;
+      x += 0.5 * (v + vNew) * dt;
+      t += dt;
+      v  = vNew;
+    }
+    // Linear interpolate at exactly the yard line
+    if (x > pX) {
+      const f = (targetFt - pX) / (x - pX);
+      data[y] = {
+        tof: pT + f * (t - pT),
+        vel: pV + f * (v - pV),
+        corLatIn: (pCorLatFt + f * (corLatFt - pCorLatFt)) * 12,
+        corVertIn: (pCorVertFt + f * (corVertFt - pCorVertFt)) * 12,
+      };
+    } else {
+      data[y] = { tof: t, vel: v, corLatIn: corLatFt * 12, corVertIn: corVertFt * 12 };
+    }
+  }
+  return data;
+}
+
+/** Siacci lag understates field wind on typical match .22 LR; leave centerfire unchanged. */
+const RIMFIRE_WIND_LAG_CORRECT = 1.35;
+
+function windLagCorrect(V0, BC) {
+  if (!(V0 > 0) || !(BC > 0)) return 1;
+  return (V0 <= 1250 && BC <= 0.22) ? RIMFIRE_WIND_LAG_CORRECT : 1;
+}
+
+function driftInches(tof, rangeFt, V0, windMph, mult, BC) {
+  const wFps = windMph * 1.46667;
+  const lag = (tof - rangeFt / V0) * windLagCorrect(V0, BC);
+  const ft = wFps * lag * mult;
+  return Math.max(ft, 0) * 12;
+}
+
+function toMOA(inches, yds) { return yds > 0 ? inches / (yds * 0.010472) : 0; }
+function toMIL(inches, yds) { return yds > 0 ? inches / (yds * 0.036000) : 0; }
+function f2(n)               { return n.toFixed(2); }
+function f1(n)               { return n.toFixed(1); }
+function fmtHold(n) {
+  if (Math.abs(n) < 0.005) return '0.00';
+  return `${Math.abs(n).toFixed(2)}${n >= 0 ? 'R' : 'L'}`;
+}
+function fmtBracket(n) {
+  return Math.abs(n).toFixed(2);
+}
+function fmtLatInches(n) {
+  if (Math.abs(n) < 0.05) return '0.0"';
+  return `${f1(Math.abs(n))}"${n >= 0 ? 'R' : 'L'}`;
+}
+function fmtVertInches(n) {
+  if (Math.abs(n) < 0.05) return '0.0"';
+  return `${f1(Math.abs(n))}"${n >= 0 ? 'U' : 'D'}`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CLOCK FACE
+═══════════════════════════════════════════════════════════ */
+let selSlot  = -1; // 0..23 half-hour positions (12:00, 12:30, 1:00, …)
+/** Full-value default on clock face: 9 o'clock (left / into rifle). Slot index 18. */
+const DEFAULT_WIND_CLOCK_SLOT = 18;
+let windMult = 1.0;
+let windSign = 1;
+
+function clockLabel(slot) {
+  if (slot < 0 || slot > 23) return '—';
+  const displayHour = (Math.floor(slot / 2) + 11) % 12 + 1;
+  const half = slot % 2;
+  if (half === 0) {
+    return displayHour === 12 ? "12 o'clock" : `${displayHour} o'clock`;
+  }
+  return displayHour === 12 ? '12:30' : `${displayHour}:30`;
+}
+
+/** Short clock readout (under dial + dope meta) so layout does not reflow */
+function clockLabelCompact(slot) {
+  if (slot < 0 || slot > 23) return '—';
+  const h = (Math.floor(slot / 2) + 11) % 12 + 1;
+  const half = slot % 2;
+  if (half === 0) return h === 12 ? '12:00' : `${h}:00`;
+  return h === 12 ? '12:30' : `${h}:30`;
+}
+
+/* Piecewise clock: linear 12→3→6→9→12 so 1:30 / 4:30 / 7:30 / 10:30 = 50%; 1:00 etc. ≠ 50% */
+const WIND_MULT_24 = [
+  0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6,
+  1, 5 / 6, 4 / 6, 3 / 6, 2 / 6, 1 / 6,
+  0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6,
+  1, 5 / 6, 4 / 6, 3 / 6, 2 / 6, 1 / 6,
+];
+
+function windMultFromSlot24(slot) {
+  const s = ((slot % 24) + 24) % 24;
+  return WIND_MULT_24[s];
+}
+
+function windSignFromSlot24(slot) {
+  if (slot < 0) return 0;
+  const rad = ((slot % 24) + 24) % 24 * 15 * Math.PI / 180;
+  const sign = -Math.sin(rad);
+  if (Math.abs(sign) < 1e-9) return 0;
+  return sign > 0 ? 1 : -1;
+}
+
+function initClock() {
+  const g = document.getElementById('clockDots');
+  for (let s = 0; s < 24; s++) {
+    const rad = s * 15 * Math.PI / 180;
+    const cx  = 100 + 76 * Math.sin(rad);
+    const cy  = 100 - 76 * Math.cos(rad);
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx', cx.toFixed(2));
+    dot.setAttribute('cy', cy.toFixed(2));
+    dot.setAttribute('r',  s % 2 === 0 ? '5.5' : '4.5');
+    dot.setAttribute('fill',         '#162216');
+    dot.setAttribute('stroke',       '#2e5a2e');
+    dot.setAttribute('stroke-width', '1.1');
+    dot.setAttribute('data-slot', s);
+    dot.setAttribute('tabindex', '-1');
+    dot.style.cursor = 'pointer';
+    dot.addEventListener('mouseenter', function () {
+      if (s !== selSlot) this.setAttribute('fill', '#223322');
+    });
+    dot.addEventListener('mouseleave', function () {
+      if (s !== selSlot) this.setAttribute('fill', '#162216');
+    });
+    dot.addEventListener('click', (e) => { e.stopPropagation(); pickHalfHour(s); });
+    g.appendChild(dot);
+  }
+
+  document.getElementById('clockSVG').addEventListener('click', function (ev) {
+    if (ev.target.closest && ev.target.closest('[data-slot]')) return;
+    const br = this.getBoundingClientRect();
+    const scale = 200 / br.width;
+    const x = (ev.clientX - br.left) * scale;
+    const y = (ev.clientY - br.top) * scale;
+    const dx = x - 100;
+    const dy = 100 - y;
+    if (Math.hypot(dx, dy) < 16) return;
+    let deg = Math.atan2(dx, dy) * 180 / Math.PI;
+    if (deg < 0) deg += 360;
+    pickHalfHour((Math.round(deg / 15) % 24 + 24) % 24);
+  });
+
+  pickHalfHour(DEFAULT_WIND_CLOCK_SLOT); // 9 o'clock = full value
+}
+
+function pickHalfHour(slot) {
+  selSlot  = slot;
+  const rad = slot * 15 * Math.PI / 180;
+  windMult  = windMultFromSlot24(slot);
+  windSign  = windSignFromSlot24(slot);
+
+  document.querySelectorAll('#clockDots circle').forEach(c => {
+    const cs = +c.getAttribute('data-slot');
+    c.setAttribute('fill',         cs === slot ? '#4a3010' : '#162216');
+    c.setAttribute('stroke',       cs === slot ? '#d4a840' : '#2e5a2e');
+  });
+
+  const rArrow = 78 * 0.58;
+  const x1 = (100 + rArrow * Math.sin(rad)).toFixed(2);
+  const y1 = (100 - rArrow * Math.cos(rad)).toFixed(2);
+  const x2 = (100 - rArrow * Math.sin(rad)).toFixed(2);
+  const y2 = (100 + rArrow * Math.cos(rad)).toFixed(2);
+
+  const arr = document.getElementById('windArrow');
+  arr.setAttribute('x1', x1);
+  arr.setAttribute('y1', y1);
+  arr.setAttribute('x2', x2);
+  arr.setAttribute('y2', y2);
+  arr.setAttribute('stroke-width', '2');
+  arr.setAttribute('visibility', 'visible');
+
+  const pct = (windMult * 100).toFixed(0);
+  let valAbbr = 'Mix';
+  if      (windMult >= 0.995)              valAbbr = 'Full';
+  else if (windMult <= 0.005)              valAbbr = 'None';
+  else if ([3, 9, 15, 21].includes(slot)) valAbbr = 'Half';
+  const push = windSign > 0 ? 'Drift R' : windSign < 0 ? 'Drift L' : 'NoX';
+
+  document.getElementById('cmPos').textContent = clockLabelCompact(slot);
+  document.getElementById('cmVal').textContent  = `${pct}% ${valAbbr} · ${push}`;
+  document.getElementById('clockSVG').setAttribute('aria-label', `Wind direction: ${clockLabel(slot)}`);
+
+  recalc();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DRAG MODEL SWITCHER
+═══════════════════════════════════════════════════════════ */
+let dragModel = 'G1';
+
+function setModel(m) {
+  dragModel = m;
+  document.getElementById('dg1').classList.toggle('active', m === 'G1');
+  document.getElementById('dg7').classList.toggle('active', m === 'G7');
+  document.getElementById('g7Note').style.display = m === 'G7' ? 'block' : 'none';
+  document.getElementById('bcLbl').textContent     = `(${m})`;
+  recalc();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOGGLE PILL STATE
+═══════════════════════════════════════════════════════════ */
+function isCardVertical() {
+  const el = document.querySelector('input[name="cardOrient"]:checked');
+  return el && el.value === 'vert';
+}
+
+function syncCardLayoutClass() {
+  const vert = isCardVertical();
+  const card = document.getElementById('dopeCard');
+  card.classList.toggle('card-vert', vert);
+  card.classList.toggle('card-horiz', !vert);
+  document.getElementById('dopeTable').classList.toggle('layout-vert', vert);
+  let st = document.getElementById('dynPrintPage');
+  if (!st) {
+    st = document.createElement('style');
+    st.id = 'dynPrintPage';
+    document.head.appendChild(st);
+  }
+  st.textContent = `@media print { @page { size: ${vert ? '3in 5in' : '5in 3in'}; margin: 0; } }`;
+}
+
+function initToggles() {
+  // Unit radio pills
+  document.querySelectorAll('input[name="unit"]').forEach(r => {
+    r.addEventListener('change', () => {
+      const mil = document.querySelector('input[name="unit"][value="MIL"]').checked;
+      document.getElementById('togMIL').classList.toggle('on', mil);
+      document.getElementById('togMOA').classList.toggle('on', !mil);
+      recalc();
+    });
+  });
+
+  // Column checkbox pills
+  [['chkW2','togW2'],['chkW3','togW3'],['chkIn','togIn'],['chkVel','togVel']].forEach(([cid, tid]) => {
+    document.getElementById(cid).addEventListener('change', function () {
+      document.getElementById(tid).classList.toggle('on', this.checked);
+      recalc();
+    });
+  });
+  document.getElementById('togIn').classList.toggle('on', document.getElementById('chkIn').checked);
+  document.getElementById('togVel').classList.toggle('on', document.getElementById('chkVel').checked);
+
+  document.querySelectorAll('input[name="cardOrient"]').forEach(r => {
+    r.addEventListener('change', () => {
+      const horiz = document.querySelector('input[name="cardOrient"][value="horiz"]').checked;
+      document.getElementById('togOrientH').classList.toggle('on', horiz);
+      document.getElementById('togOrientV').classList.toggle('on', !horiz);
+      recalc();
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BULLET LIBRARY DROPDOWN
+═══════════════════════════════════════════════════════════ */
+function populateLibrary() {
+  const sel = document.getElementById('bulletSel');
+  let curBrand = null, grp = null;
+
+  LIBRARY.forEach((b, i) => {
+    if (b.brand !== curBrand) {
+      grp = document.createElement('optgroup');
+      grp.label = b.brand;
+      sel.appendChild(grp);
+      curBrand = b.brand;
+    }
+    const o = document.createElement('option');
+    o.value       = i;
+    o.textContent = `${b.name}  ·  ${b.gr}gr  ·  ${b.fps}fps`;
+    grp.appendChild(o);
+  });
+
+  sel.addEventListener('change', () => {
+    const idx = parseInt(sel.value);
+    if (isNaN(idx) || !LIBRARY[idx]) return;
+    const b = LIBRARY[idx];
+    document.getElementById('bc').value    = b.bc;
+    document.getElementById('grain').value = b.gr;
+    document.getElementById('fps').value   = b.fps;
+    truedBC = null; trueLibBC = null;
+    document.getElementById('bc').classList.remove('bc-trued');
+    document.getElementById('trueResult').style.display = 'none';
+    document.getElementById('trueResult').className = 'true-result';
+    document.getElementById('btnTrueReset').style.display = 'none';
+    document.getElementById('velTrueResult').style.display = 'none';
+    document.getElementById('velTrueResult').className = 'true-result';
+    document.getElementById('btnVelTrueReset').style.display = 'none';
+    recalc();
+  });
+
+  const defIdx = LIBRARY.findIndex(b => b.name === 'Lapua Center-X');
+  if (defIdx >= 0) {
+    sel.value = String(defIdx);
+    const b = LIBRARY[defIdx];
+    document.getElementById('bc').value    = b.bc;
+    document.getElementById('grain').value = b.gr;
+    document.getElementById('fps').value   = b.fps;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DEBOUNCED RECALCULATE
+═══════════════════════════════════════════════════════════ */
+let debTimer = null;
+function schedRecalc() {
+  clearTimeout(debTimer);
+  debTimer = setTimeout(recalc, 160);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN CALCULATION
+═══════════════════════════════════════════════════════════ */
+function recalc() {
+  const V0     = parseFloat(document.getElementById('fps').value)    || 0;
+  const BC     = parseFloat(document.getElementById('bc').value)     || 0;
+  const gr     = parseFloat(document.getElementById('grain').value)  || 0;
+  const rStart = parseInt  (document.getElementById('rStart').value) || 0;
+  const rEnd   = parseInt  (document.getElementById('rEnd').value)   || 0;
+  const rStep  = parseInt  (document.getElementById('rStep').value)  || 25;
+  const elevFt = parseFloat(document.getElementById('elevFt').value) || 0;
+  const tempF  = parseFloat(document.getElementById('tempF').value)  || 59;
+  const humidity = parseFloat(document.getElementById('humidity').value) || 0;
+  const pressureRaw = parseFloat(document.getElementById('pressure').value);
+  const pressureInHg = pressureRaw > 0 ? pressureRaw : stdPressureInHgFromElevation(elevFt);
+  const latDeg = parseFloat(document.getElementById('latDeg').value) || 0;
+  const azimuthDeg = parseFloat(document.getElementById('azimuthDeg').value) || 0;
+  const twistIn = parseFloat(document.getElementById('twistIn').value) || 0;
+  const bulletDia = parseFloat(document.getElementById('bulletDia').value) || 0;
+  const bulletLen = parseFloat(document.getElementById('bulletLen').value) || 0;
+  const twistDir = parseFloat(document.getElementById('twistDir').value) || 1;
+  const winds  = [
+    parseFloat(document.getElementById('w1').value) || 0,
+    parseFloat(document.getElementById('w2').value) || 0,
+    parseFloat(document.getElementById('w3').value) || 0,
+  ];
+  const unit  = document.querySelector('input[name="unit"]:checked').value;
+  const shW2  = document.getElementById('chkW2').checked;
+  const shW3  = document.getElementById('chkW3').checked;
+  const shIn  = document.getElementById('chkIn').checked;
+  const shVel = document.getElementById('chkVel').checked;
+  const useCor  = document.getElementById('chkCor').checked;
+  const useSpin = document.getElementById('chkSpin').checked;
+
+  if (V0 <= 0 || BC <= 0 || rEnd <= 0 || rStep <= 0) return;
+
+  const rho = airDensityLbFt3(tempF, pressureInHg, humidity);
+  const sos = speedOfSoundFps(tempF);
+  const sg  = useSpin ? millerStability(gr, bulletDia, bulletLen, twistIn, tempF, pressureInHg, V0) : 0;
+  const traj = buildTrajectory(
+    V0, BC, dragModel, rEnd,
+    { rho, sos },
+    { useCor, latRad: latDeg * Math.PI / 180, azimuthRad: azimuthDeg * Math.PI / 180 }
+  );
+
+  // Build row data
+  const rows = [];
+  const firstY = rStart > 0 ? rStart : rStep;
+  for (let y = firstY; y <= rEnd; y += rStep) {
+    if (!traj[y]) continue;
+    const { tof, vel, corLatIn, corVertIn } = traj[y];
+    const rf = y * 3;
+    const spinDriftIn = useSpin ? estimateSpinDriftInches(tof, sg, twistDir) : 0;
+    const corDriftIn  = useCor ? corLatIn : 0;
+    const drifts = winds.map(mph => {
+      /* Drift = where the bullet goes without correction; HOLD is opposite (into the wind). */
+      const windDriftIn = driftInches(tof, rf, V0, mph, windMult, BC) * windSign;
+      const inches = -windDriftIn - spinDriftIn - corDriftIn;
+      const disp   = unit === 'MOA' ? toMOA(inches, y) : toMIL(inches, y);
+      return { inches, disp };
+    });
+    rows.push({
+      y,
+      vel: Math.round(vel),
+      tof,
+      drifts,
+      spinInches: spinDriftIn,
+      corLatIn: useCor ? corLatIn : 0,
+      corVertIn: useCor ? corVertIn : 0,
+    });
+  }
+
+  renderCard(rows, winds, V0, shW2, shW3, shIn, shVel, traj, rEnd, {
+    pressureInHg,
+    tempF,
+    elevFt,
+    rho,
+    sg,
+    useSpin,
+    useCor,
+    latDeg,
+    azimuthDeg,
+    twistIn,
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RENDER DOPE CARD
+═══════════════════════════════════════════════════════════ */
+function renderCard(rows, winds, V0, shW2, shW3, shIn, shVel, traj, rEnd, envInfo) {
+  syncCardLayoutClass();
+  const vertical = isCardVertical();
+  const dcBody = document.querySelector('#dopeCard .dc-body');
+
+  // ── Header ──
+  const selIdx = parseInt(document.getElementById('bulletSel').value);
+  const bName  = (!isNaN(selIdx) && LIBRARY[selIdx]) ? LIBRARY[selIdx].name : 'Custom Load';
+  const title  = document.getElementById('cardTitle').value.trim() || 'GUSTY';
+
+  document.getElementById('dcTitle').textContent = title;
+  let windMeta = '';
+  if (selSlot >= 0 && selSlot <= 23) {
+    const pct = (windMult * 100).toFixed(0);
+    let valWord = 'Mix';
+    if (windMult >= 0.995) valWord = 'Full';
+    else if (windMult <= 0.005) valWord = 'None';
+    else if ([3, 9, 15, 21].includes(selSlot)) valWord = 'Half';
+    windMeta =
+      ` &nbsp;&middot;&nbsp; ${clockLabel(selSlot)} &nbsp;&middot;&nbsp; ${valWord} value (${pct}%)`;
+  } else {
+    windMeta = ' &nbsp;&middot;&nbsp; Wind not set';
+  }
+  document.getElementById('dcMeta').innerHTML =
+    `${bName} &nbsp;&middot;&nbsp; ${V0}fps` + windMeta;
+
+  const nWind = 1 + (shW2 ? 1 : 0) + (shW3 ? 1 : 0);
+  const perWind = shIn ? 2 : 1;
+  const brCols = shIn ? 2 : 1;
+  const velCols = shVel ? 1 : 0;
+  const colCount = 1 + nWind * perWind + brCols + velCols;
+
+  let th = '<th>YDS</th>';
+  th += `<th>W1&nbsp;${f2(winds[0])}mph</th>` + (shIn ? '<th>Inches</th>' : '');
+  if (shW2) th += `<th>W2&nbsp;${f2(winds[1])}mph</th>` + (shIn ? '<th>Inches</th>' : '');
+  if (shW3) th += `<th>W3&nbsp;${f2(winds[2])}mph</th>` + (shIn ? '<th>Inches</th>' : '');
+  th += '<th>BRCKT</th>' + (shIn ? '<th>Inches</th>' : '');
+  if (shVel) th += '<th>FPS</th>';
+  document.getElementById('tHead').innerHTML = th;
+
+  // ── Rows ──
+  const tooMany = vertical ? rows.length > 22 : rows.length > 16;
+  let html = '';
+
+  if (tooMany) {
+    html += `<tr><td colspan="${colCount}" class="warn-cell">` +
+      `&#9888; ${rows.length} rows &mdash; may overflow a ${vertical ? '3×5' : '5×3'} card. Try a larger step size.` +
+      `</td></tr>`;
+  }
+
+  rows.forEach(r => {
+    const v = r.drifts.map(d => d.disp);
+    const ins = r.drifts.map(d => d.inches);
+    const vis = [v[0], ...(shW2 ? [v[1]] : []), ...(shW3 ? [v[2]] : [])];
+    const inVis = [ins[0], ...(shW2 ? [ins[1]] : []), ...(shW3 ? [ins[2]] : [])];
+    const bracket = Math.max(...vis) - Math.min(...vis);
+    const inchBracket = Math.max(...inVis) - Math.min(...inVis);
+
+    html +=
+      `<tr>` +
+      `<td>${r.y}</td>` +
+      `<td>${fmtHold(v[0])}</td>` +
+      (shIn ? `<td>${fmtLatInches(ins[0])}</td>` : '') +
+      (shW2 ? `<td>${fmtHold(v[1])}</td>` + (shIn ? `<td>${fmtLatInches(ins[1])}</td>` : '') : '') +
+      (shW3 ? `<td>${fmtHold(v[2])}</td>` + (shIn ? `<td>${fmtLatInches(ins[2])}</td>` : '') : '') +
+      `<td>${fmtBracket(bracket)}</td>` +
+      (shIn ? `<td>${f1(inchBracket)}"</td>` : '') +
+      (shVel ? `<td>${r.vel}</td>` : '') +
+      `</tr>`;
+  });
+
+  if (!html) {
+    html = `<tr><td colspan="${colCount}" style="padding:16px;text-align:center;font-family:sans-serif;font-size:10px;color:#888;background:#f5f0e6">` +
+      `No data — check range inputs</td></tr>`;
+  }
+
+  document.getElementById('tBody').innerHTML = html;
+
+  fitDOPECard();
+
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTO-FIT DOPE CARD — shrink font/padding until no overflow
+═══════════════════════════════════════════════════════════ */
+function fitDOPECard() {
+  const card  = document.getElementById('dopeCard');
+  const body  = card.querySelector('.dc-body');
+  const table = document.getElementById('dopeTable');
+  if (!table.rows.length || !body.clientHeight) return;
+
+  const isVert  = card.classList.contains('card-vert');
+  const baseTh  = isVert ? 6   : 7;    // pt
+  const baseTd  = isVert ? 7.5 : 9;    // pt
+  const basePadThV = isVert ? 2   : 3;  // px vertical padding on th
+  const basePadV   = isVert ? 2   : 2.5;// px vertical padding on td
+  const basePadH   = 5;                 // px horizontal padding (both)
+
+  // Reset inline styles so CSS defaults apply
+  table.querySelectorAll('th, td').forEach(el => {
+    el.style.fontSize = '';
+    el.style.padding  = '';
+  });
+
+  // If it already fits, nothing to do
+  if (body.scrollHeight <= body.clientHeight && body.scrollWidth <= body.clientWidth) return;
+
+  // Step scale down until content fits (binary search, 16 iterations ≈ 0.001 precision)
+  let lo = 0.35, hi = 1.0;
+  for (let i = 0; i < 16; i++) {
+    const s  = (lo + hi) / 2;
+    const pv = Math.max(0.5, basePadV   * s);
+    const ph = Math.max(1,   basePadH   * s);
+    const hv = Math.max(0.5, basePadThV * s);
+    table.querySelectorAll('thead th').forEach(el => {
+      el.style.fontSize = (baseTh * s) + 'pt';
+      el.style.padding  = `${hv}px ${ph}px`;
+    });
+    table.querySelectorAll('tbody td').forEach(el => {
+      el.style.fontSize = (baseTd * s) + 'pt';
+      el.style.padding  = `${pv}px ${ph}px`;
+    });
+    if (body.scrollHeight <= body.clientHeight && body.scrollWidth <= body.clientWidth) {
+      lo = s;   // fits — try larger
+    } else {
+      hi = s;   // too big — try smaller
+    }
+  }
+  // Apply the best fitting scale (lo)
+  const pv = Math.max(0.5, basePadV   * lo);
+  const ph = Math.max(1,   basePadH   * lo);
+  const hv = Math.max(0.5, basePadThV * lo);
+  table.querySelectorAll('thead th').forEach(el => {
+    el.style.fontSize = (baseTh * lo) + 'pt';
+    el.style.padding  = `${hv}px ${ph}px`;
+  });
+  table.querySelectorAll('tbody td').forEach(el => {
+    el.style.fontSize = (baseTd * lo) + 'pt';
+    el.style.padding  = `${pv}px ${ph}px`;
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAVED SETTINGS (localStorage)
+═══════════════════════════════════════════════════════════ */
+const SETTINGS_KEY = 'gusty_settings_v2';
+const LEGACY_SETTINGS_KEY = 'gusty_settings_v1';
+
+function flashSaveMsg(text) {
+  const el = document.getElementById('saveMsg');
+  if (!el) return;
+  el.textContent = text;
+  clearTimeout(window._gustySaveMsgTimer);
+  window._gustySaveMsgTimer = setTimeout(() => { el.textContent = ''; }, 2800);
+}
+
+function readSettingsFromPage() {
+  const pressureEl = document.getElementById('pressure');
+  const scardCollapsed = {};
+  document.querySelectorAll('.sidebar > .scard[data-scard-key]').forEach(el => {
+    const key = el.getAttribute('data-scard-key');
+    if (key) scardCollapsed[key] = el.classList.contains('collapsed');
+  });
+  return {
+    v: 2,
+    dragModel,
+    bulletSel: document.getElementById('bulletSel').value,
+    bc: document.getElementById('bc').value,
+    grain: document.getElementById('grain').value,
+    fps: document.getElementById('fps').value,
+    rStart: document.getElementById('rStart').value,
+    rEnd: document.getElementById('rEnd').value,
+    rStep: document.getElementById('rStep').value,
+    elevFt: document.getElementById('elevFt').value,
+    latDeg: document.getElementById('latDeg').value,
+    tempF: document.getElementById('tempF').value,
+    humidity: document.getElementById('humidity').value,
+    pressure: pressureEl ? pressureEl.value : '',
+    azimuthDeg: document.getElementById('azimuthDeg').value,
+    twistIn: document.getElementById('twistIn').value,
+    bulletDia: document.getElementById('bulletDia').value,
+    bulletLen: document.getElementById('bulletLen').value,
+    twistDir: document.getElementById('twistDir').value,
+    chkCor: document.getElementById('chkCor').checked,
+    chkSpin: document.getElementById('chkSpin').checked,
+    w1: document.getElementById('w1').value,
+    w2: document.getElementById('w2').value,
+    w3: document.getElementById('w3').value,
+    unit: document.querySelector('input[name="unit"]:checked')?.value || 'MIL',
+    chkW2: document.getElementById('chkW2').checked,
+    chkW3: document.getElementById('chkW3').checked,
+    chkIn: document.getElementById('chkIn').checked,
+    chkVel: document.getElementById('chkVel').checked,
+    cardOrient: document.querySelector('input[name="cardOrient"]:checked')?.value || 'horiz',
+    cardTitle: document.getElementById('cardTitle').value,
+    windSlot: selSlot,
+    scardCollapsed,
+  };
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(readSettingsFromPage()));
+    flashSaveMsg('Saved locally for this browser.');
+  } catch (e) {
+    flashSaveMsg('Could not save (storage blocked or full).');
+  }
+}
+
+function applySettingsToPage(s) {
+  if (!s || (s.v !== 1 && s.v !== 2)) return false;
+
+  const setVal = (id, v) => {
+    const el = document.getElementById(id);
+    if (el && v !== undefined && v !== null) el.value = String(v);
+  };
+
+  setVal('bc', s.bc);
+  setVal('grain', s.grain);
+  setVal('fps', s.fps);
+  setVal('rStart', s.rStart);
+  setVal('rEnd', s.rEnd);
+  setVal('rStep', s.rStep);
+  setVal('elevFt', s.elevFt);
+  setVal('latDeg', s.latDeg);
+  setVal('tempF', s.tempF);
+  setVal('humidity', s.humidity);
+  if (document.getElementById('pressure')) {
+    document.getElementById('pressure').value =
+      s.pressure === undefined || s.pressure === null ? '' : String(s.pressure);
+  }
+  setVal('azimuthDeg', s.azimuthDeg);
+  setVal('twistIn', s.twistIn);
+  setVal('bulletDia', s.bulletDia);
+  setVal('bulletLen', s.bulletLen);
+  if (s.twistDir === '1' || s.twistDir === '-1') {
+    document.getElementById('twistDir').value = s.twistDir;
+  }
+  document.getElementById('chkCor').checked  = s.chkCor !== false;
+  document.getElementById('chkSpin').checked = s.chkSpin !== false;
+  setVal('w1', s.w1);
+  setVal('w2', s.w2);
+  setVal('w3', s.w3);
+  setVal('cardTitle', s.cardTitle);
+
+  const sel = document.getElementById('bulletSel');
+  if (sel && s.bulletSel !== undefined && s.bulletSel !== null) {
+    sel.value = String(s.bulletSel);
+  }
+
+  const unitMil = s.unit !== 'MOA';
+  const milIn = document.querySelector('input[name="unit"][value="MIL"]');
+  const moaIn = document.querySelector('input[name="unit"][value="MOA"]');
+  if (milIn && moaIn) {
+    milIn.checked = unitMil;
+    moaIn.checked = !unitMil;
+    document.getElementById('togMIL').classList.toggle('on', unitMil);
+    document.getElementById('togMOA').classList.toggle('on', !unitMil);
+  }
+
+  const horiz = s.cardOrient !== 'vert';
+  const hIn = document.querySelector('input[name="cardOrient"][value="horiz"]');
+  const vIn = document.querySelector('input[name="cardOrient"][value="vert"]');
+  if (hIn && vIn) {
+    hIn.checked = horiz;
+    vIn.checked = !horiz;
+    document.getElementById('togOrientH').classList.toggle('on', horiz);
+    document.getElementById('togOrientV').classList.toggle('on', !horiz);
+  }
+
+  document.getElementById('chkW2').checked = s.chkW2 !== false;
+  document.getElementById('chkW3').checked = s.chkW3 !== false;
+  document.getElementById('chkIn').checked = !!s.chkIn;
+  document.getElementById('chkVel').checked = !!s.chkVel;
+  document.getElementById('togW2').classList.toggle('on', document.getElementById('chkW2').checked);
+  document.getElementById('togW3').classList.toggle('on', document.getElementById('chkW3').checked);
+  document.getElementById('togIn').classList.toggle('on', document.getElementById('chkIn').checked);
+  document.getElementById('togVel').classList.toggle('on', document.getElementById('chkVel').checked);
+
+  if (s.dragModel === 'G1' || s.dragModel === 'G7') {
+    setModel(s.dragModel);
+  }
+
+  const slot = Number.isFinite(+s.windSlot)
+    ? Math.max(0, Math.min(23, Math.round(+s.windSlot)))
+    : DEFAULT_WIND_CLOCK_SLOT;
+  pickHalfHour(slot);
+
+  if (s.scardCollapsed && typeof s.scardCollapsed === 'object' && !Array.isArray(s.scardCollapsed)) {
+    document.querySelectorAll('.sidebar > .scard[data-scard-key]').forEach(el => {
+      const key = el.getAttribute('data-scard-key');
+      if (!key || s.scardCollapsed[key] === undefined) return;
+      const collapsed = !!s.scardCollapsed[key];
+      el.classList.toggle('collapsed', collapsed);
+      const h = el.querySelector('[data-scard-toggle]');
+      if (h) h.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    });
+  }
+  /* v1 array scardCollapsed ignored: sidebar section order changed */
+
+  syncCardLayoutClass();
+  return true;
+}
+
+function loadSettingsFromStorage() {
+  let raw;
+  let fromLegacy = false;
+  try {
+    raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) {
+      raw = localStorage.getItem(LEGACY_SETTINGS_KEY);
+      fromLegacy = !!raw;
+    }
+  } catch (e) {
+    return false;
+  }
+  if (!raw) return false;
+  try {
+    const s = JSON.parse(raw);
+    /* Earlier builds could persist slot 22 (11:00) as the “default”; treat as mistaken when upgrading from legacy key. */
+    if (fromLegacy && Number(s.windSlot) === 22) {
+      delete s.windSlot;
+    }
+    const ok = applySettingsToPage(s);
+    if (ok && fromLegacy) {
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(readSettingsFromPage()));
+        localStorage.removeItem(LEGACY_SETTINGS_KEY);
+      } catch (e) { /* ignore quota / privacy mode */ }
+    }
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED WEATHER FILL (Open-Meteo, no API key)
+   Called by both "Locate me" and "Look up ZIP".
+═══════════════════════════════════════════════════════════ */
+const HPA_TO_INHG = 0.029529983071445;
+
+async function fillWeatherFromLatLon(lat, lon, msgEl, btnEl) {
+  msgEl.textContent = 'Fetching elevation & weather…';
+
+  const elUrl =
+    `https://api.open-meteo.com/v1/elevation?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}`;
+  const wxUrl =
+    `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}` +
+    '&current=temperature_2m,relative_humidity_2m,surface_pressure&timezone=auto&temperature_unit=fahrenheit';
+
+  let elevOk = false, wxOk = false;
+  try {
+    const [elRes, wxRes] = await Promise.all([fetch(elUrl), fetch(wxUrl)]);
+    if (elRes.ok) {
+      const elData = await elRes.json();
+      const elevM = Array.isArray(elData.elevation) ? elData.elevation[0] : null;
+      if (typeof elevM === 'number' && Number.isFinite(elevM)) {
+        document.getElementById('elevFt').value = String(Math.round(elevM * 3.280839895));
+        elevOk = true;
+      }
+    }
+    if (wxRes.ok) {
+      const wxData = await wxRes.json();
+      const cur = wxData.current;
+      if (cur) {
+        if (cur.temperature_2m != null && Number.isFinite(cur.temperature_2m)) {
+          document.getElementById('tempF').value = String(Math.round(cur.temperature_2m));
+          wxOk = true;
+        }
+        if (cur.relative_humidity_2m != null && Number.isFinite(cur.relative_humidity_2m)) {
+          document.getElementById('humidity').value = String(Math.round(cur.relative_humidity_2m));
+          wxOk = true;
+        }
+        if (cur.surface_pressure != null && Number.isFinite(cur.surface_pressure)) {
+          const inHg = cur.surface_pressure * HPA_TO_INHG;
+          document.getElementById('pressure').value = inHg.toFixed(2);
+          wxOk = true;
+        }
+      }
+    }
+  } catch (e) {
+    msgEl.textContent = 'Network error loading elevation or weather. Check connection.';
+    if (btnEl) btnEl.disabled = false;
+    recalc();
+    return;
+  }
+
+  document.getElementById('latDeg').value = lat.toFixed(4);
+
+  if (!elevOk) {
+    msgEl.textContent = wxOk
+      ? 'Weather updated; elevation lookup failed (enter manually).'
+      : 'Lat set; elevation & weather failed (enter manually or retry).';
+  } else {
+    msgEl.textContent = wxOk
+      ? 'Updated latitude, elevation, temperature, humidity, and station pressure.'
+      : 'Updated latitude & elevation. Weather fields unchanged (API partial).';
+  }
+  if (btnEl) btnEl.disabled = false;
+  recalc();
+}
+
+/* ── ZIP CODE LOOKUP ── */
+async function lookupZip() {
+  const zipVal = (document.getElementById('zipCode').value || '').trim();
+  const msg    = document.getElementById('locMsg');
+  const btn    = document.getElementById('btnZip');
+
+  if (!/^[0-9]{5}$/.test(zipVal)) {
+    msg.textContent = 'Enter a valid 5-digit US ZIP code.';
+    return;
+  }
+  btn.disabled = true;
+  msg.textContent = `Looking up ZIP ${zipVal}…`;
+
+  let lat, lon, placeName;
+  try {
+    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(zipVal)}&count=10&language=en&format=json`;
+    const res = await fetch(geoUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const results = (data.results || []);
+    const match = results.find(r => r.country_code === 'US') || results[0];
+    if (!match || !Number.isFinite(match.latitude) || !Number.isFinite(match.longitude)) {
+      msg.textContent = `ZIP ${zipVal} not found. Double-check the code.`;
+      btn.disabled = false;
+      return;
+    }
+    lat       = match.latitude;
+    lon       = match.longitude;
+    placeName = [match.name, match.admin1 || match.country].filter(Boolean).join(', ');
+    msg.textContent = `Found: ${placeName} — fetching weather…`;
+  } catch (e) {
+    msg.textContent = `Geocoding failed (${e.message}). Check your connection.`;
+    btn.disabled = false;
+    return;
+  }
+
+  await fillWeatherFromLatLon(lat, lon, msg, btn);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LOCATE ME (Geolocation → fillWeatherFromLatLon)
+═══════════════════════════════════════════════════════════ */
+function locateMe() {
+  const btn = document.getElementById('btnLocate');
+  const msg = document.getElementById('locMsg');
+  if (!navigator.geolocation) {
+    msg.textContent = 'Geolocation is not available in this browser.';
+    return;
+  }
+  btn.disabled = true;
+  msg.textContent = 'Requesting position…';
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      await fillWeatherFromLatLon(pos.coords.latitude, pos.coords.longitude, msg, btn);
+    },
+    (err) => {
+      const why = err && err.code === 1 ? 'Permission denied'
+        : err && err.code === 2 ? 'Position unavailable'
+          : err && err.code === 3 ? 'Timed out' : 'Could not read position';
+      msg.textContent = `${why}. Allow location for this site, or enter values manually.`;
+      btn.disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COLLAPSIBLE SIDEBAR SECTIONS
+═══════════════════════════════════════════════════════════ */
+function initCollapsibleScards() {
+  document.querySelectorAll('[data-scard-toggle]').forEach(head => {
+    head.addEventListener('click', (e) => {
+      e.preventDefault();
+      const card = head.closest('.scard');
+      if (!card) return;
+      const nowCollapsed = card.classList.toggle('collapsed');
+      head.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+    });
+    head.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        head.click();
+      }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TRUING — back-solve effective BC from observed wind hold
+   and from observed velocity at range.
+═══════════════════════════════════════════════════════════ */
+let truedBC   = null;
+let trueLibBC = null;
+
+let trueSelSlot  = 18;
+let trueWindMult = 1.0;
+let trueWindSign = 1;
+
+function trueUnitLabel() {
+  return (document.querySelector('input[name="unit"]:checked')?.value || 'MIL');
+}
+function updateTrueUnitLbl() {
+  const el = document.getElementById('trueUnitLbl');
+  if (el) el.textContent = trueUnitLabel();
+}
+
+function initTrueClock() {
+  const g = document.getElementById('trueClockDots');
+  if (!g) return;
+  for (let s = 0; s < 24; s++) {
+    const rad = s * 15 * Math.PI / 180;
+    const cx  = 100 + 76 * Math.sin(rad);
+    const cy  = 100 - 76 * Math.cos(rad);
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', cx.toFixed(2));
+    dot.setAttribute('cy', cy.toFixed(2));
+    dot.setAttribute('r',  s % 2 === 0 ? '5.5' : '4.5');
+    dot.setAttribute('fill',         '#162216');
+    dot.setAttribute('stroke',       '#2e5a2e');
+    dot.setAttribute('stroke-width', '1.1');
+    dot.setAttribute('data-tslot', s);
+    dot.style.cursor = 'pointer';
+    dot.addEventListener('mouseenter', function() {
+      if (s !== trueSelSlot) this.setAttribute('fill', '#223322');
+    });
+    dot.addEventListener('mouseleave', function() {
+      if (s !== trueSelSlot) this.setAttribute('fill', '#162216');
+    });
+    dot.addEventListener('click', (e) => { e.stopPropagation(); pickTrueSlot(s); });
+    g.appendChild(dot);
+  }
+  document.getElementById('trueClockSVG').addEventListener('click', function(ev) {
+    if (ev.target.closest && ev.target.closest('[data-tslot]')) return;
+    const br = this.getBoundingClientRect();
+    const scale = 200 / br.width;
+    const x = (ev.clientX - br.left) * scale;
+    const y = (ev.clientY - br.top)  * scale;
+    const dx = x - 100, dy = 100 - y;
+    if (Math.hypot(dx, dy) < 16) return;
+    let deg = Math.atan2(dx, dy) * 180 / Math.PI;
+    if (deg < 0) deg += 360;
+    pickTrueSlot((Math.round(deg / 15) % 24 + 24) % 24);
+  });
+  pickTrueSlot(18);
+}
+
+function pickTrueSlot(slot) {
+  trueSelSlot  = slot;
+  trueWindMult = windMultFromSlot24(slot);
+  trueWindSign = windSignFromSlot24(slot);
+
+  document.querySelectorAll('#trueClockDots circle').forEach(c => {
+    const cs = +c.getAttribute('data-tslot');
+    c.setAttribute('fill',   cs === slot ? '#4a3010' : '#162216');
+    c.setAttribute('stroke', cs === slot ? '#d4a840' : '#2e5a2e');
+  });
+
+  const rad = slot * 15 * Math.PI / 180;
+  const r   = 78 * 0.58;
+  const arr = document.getElementById('trueWindArrow');
+  arr.setAttribute('x1', (100 + r * Math.sin(rad)).toFixed(2));
+  arr.setAttribute('y1', (100 - r * Math.cos(rad)).toFixed(2));
+  arr.setAttribute('x2', (100 - r * Math.sin(rad)).toFixed(2));
+  arr.setAttribute('y2', (100 + r * Math.cos(rad)).toFixed(2));
+  arr.setAttribute('visibility', 'visible');
+
+  const pct = (trueWindMult * 100).toFixed(0);
+  let valWord = 'Mix';
+  if      (trueWindMult >= 0.995)              valWord = 'Full';
+  else if (trueWindMult <= 0.005)              valWord = 'None';
+  else if ([3, 9, 15, 21].includes(slot))     valWord = 'Half';
+  const push = trueWindSign > 0 ? 'Drift L (hold L)' : trueWindSign < 0 ? 'Drift R (hold R)' : 'No crosswind';
+  document.getElementById('trueClockMeta').textContent =
+    `${clockLabelCompact(slot)} · ${pct}% ${valWord} · ${push}`;
+}
+
+function totalDriftForBC(bc, rangeYds, windMph, windMult, windSign, unit) {
+  const V0       = parseFloat(document.getElementById('fps').value) || 0;
+  const gr       = parseFloat(document.getElementById('grain').value) || 0;
+  const elevFt   = parseFloat(document.getElementById('elevFt').value) || 0;
+  const tempF    = parseFloat(document.getElementById('tempF').value) || 59;
+  const humidity = parseFloat(document.getElementById('humidity').value) || 0;
+  const pressRaw = parseFloat(document.getElementById('pressure').value);
+  const pressInHg= pressRaw > 0 ? pressRaw : stdPressureInHgFromElevation(elevFt);
+  const latDeg   = parseFloat(document.getElementById('latDeg').value) || 0;
+  const azDeg    = parseFloat(document.getElementById('azimuthDeg').value) || 0;
+  const twistIn  = parseFloat(document.getElementById('twistIn').value) || 0;
+  const bulletDia= parseFloat(document.getElementById('bulletDia').value) || 0;
+  const bulletLen= parseFloat(document.getElementById('bulletLen').value) || 0;
+  const twistDir = parseFloat(document.getElementById('twistDir').value) || 1;
+  const useSpin  = document.getElementById('chkSpin').checked;
+  const useCor   = document.getElementById('chkCor').checked;
+  if (V0 <= 0 || bc <= 0 || rangeYds <= 0) return null;
+  const rho = airDensityLbFt3(tempF, pressInHg, humidity);
+  const sos = speedOfSoundFps(tempF);
+  const tr  = buildTrajectory(V0, bc, dragModel, rangeYds, {rho, sos},
+    {useCor, latRad: latDeg * Math.PI / 180, azimuthRad: azDeg * Math.PI / 180});
+  const pt = tr[rangeYds];
+  if (!pt) return null;
+  const R_ft        = rangeYds * 3;
+  const windDriftIn = driftInches(pt.tof, R_ft, V0, windMph, windMult, bc) * windSign;
+  const sg          = (useSpin && twistIn > 0 && bulletDia > 0 && bulletLen > 0)
+    ? millerStability(gr, bulletDia, bulletLen, twistIn, tempF, pressInHg, V0) : 0;
+  const spinDriftIn = sg > 0 ? estimateSpinDriftInches(pt.tof, sg, twistDir) : 0;
+  const corDriftIn  = useCor ? pt.corLatIn : 0;
+  const totalIn = -windDriftIn - spinDriftIn - corDriftIn;
+  const absMil  = Math.abs(totalIn);
+  return unit === 'MOA' ? toMOA(absMil, rangeYds) : toMIL(absMil, rangeYds);
+}
+
+function solveBC() {
+  const btn      = document.getElementById('btnTrue');
+  const resultEl = document.getElementById('trueResult');
+  const resetBtn = document.getElementById('btnTrueReset');
+  const rangeYds = parseInt  (document.getElementById('trueRange').value)   || 0;
+  const windMph  = parseFloat(document.getElementById('trueWindMph').value) || 0;
+  const holdObs  = parseFloat(document.getElementById('trueHold').value)    || 0;
+  const unit     = trueUnitLabel();
+  const V0       = parseFloat(document.getElementById('fps').value) || 0;
+  resultEl.style.display = 'none';
+  resultEl.className = 'true-result';
+  const fail = (msg) => {
+    resultEl.innerHTML = msg;
+    resultEl.className = 'true-result err';
+    resultEl.style.display = 'block';
+    btn.disabled = false;
+  };
+  if (rangeYds < 10)       return fail('Enter a valid range (≥ 10 yds).');
+  if (windMph  <= 0)       return fail('Enter a wind speed > 0.');
+  if (holdObs  <= 0)       return fail('Enter the observed hold (' + unit + ') as a positive number.');
+  if (trueWindMult < 0.01) return fail('No crosswind at 12 or 6 o\u2019clock \u2014 pick a different direction.');
+  if (V0       <= 0)       return fail('Set muzzle velocity in the Bullet section first.');
+  btn.disabled = true;
+  let lo = 0.040, hi = 0.650;
+  const vLo = totalDriftForBC(lo, rangeYds, windMph, trueWindMult, trueWindSign, unit);
+  const vHi = totalDriftForBC(hi, rangeYds, windMph, trueWindMult, trueWindSign, unit);
+  if (vLo === null || vHi === null) { btn.disabled = false; return fail('Trajectory failed \u2014 check inputs.'); }
+  if (holdObs > vLo) { btn.disabled = false; return fail('Hold ' + holdObs.toFixed(2) + ' ' + unit + ' exceeds model max (' + vLo.toFixed(2) + ' ' + unit + ' at BC=0.040). Check range/wind speed.'); }
+  if (holdObs < vHi) { btn.disabled = false; return fail('Hold ' + holdObs.toFixed(2) + ' ' + unit + ' is below model min (' + vHi.toFixed(2) + ' ' + unit + ' at BC=0.650). Check inputs.'); }
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const val = totalDriftForBC(mid, rangeYds, windMph, trueWindMult, trueWindSign, unit);
+    if (val === null) break;
+    if (val > holdObs) lo = mid; else hi = mid;
+    if (hi - lo < 0.00005) break;
+  }
+  const solvedBC  = (lo + hi) / 2;
+  const checkVal  = totalDriftForBC(solvedBC, rangeYds, windMph, trueWindMult, trueWindSign, unit) || 0;
+  if (truedBC === null) trueLibBC = parseFloat(document.getElementById('bc').value) || null;
+  truedBC = solvedBC;
+  document.getElementById('bc').value = solvedBC.toFixed(3);
+  document.getElementById('bc').classList.add('bc-trued');
+  const dirStr   = trueWindSign > 0 ? 'L\u2192R' : 'R\u2192L';
+  const libBCStr = trueLibBC ? ' (library: ' + trueLibBC.toFixed(3) + ')' : '';
+  resultEl.innerHTML =
+    '<strong>Trued BC: ' + solvedBC.toFixed(3) + '</strong>' + libBCStr + '<br>' +
+    'Matched ' + holdObs.toFixed(2) + ' ' + unit + ' @ ' + rangeYds + 'yds \u00b7 ' + windMph + 'mph \u00b7 ' + dirStr + ' \u00b7 ' + (trueWindMult*100).toFixed(0) + '% value.<br>' +
+    'Model check: ' + checkVal.toFixed(3) + ' ' + unit + ' (card will show this at that range/wind).<br>' +
+    'BC highlighted while truing is active.';
+  resultEl.className = 'true-result ok';
+  resultEl.style.display = 'block';
+  resetBtn.style.display = 'block';
+  btn.disabled = false;
+  schedRecalc();
+}
+
+function resetTruing() {
+  truedBC = null;
+  if (trueLibBC !== null) {
+    document.getElementById('bc').value = trueLibBC.toFixed(3);
+    trueLibBC = null;
+  }
+  document.getElementById('bc').classList.remove('bc-trued');
+  document.getElementById('trueHold').value = '';
+  document.getElementById('trueResult').style.display = 'none';
+  document.getElementById('trueResult').className = 'true-result';
+  document.getElementById('btnTrueReset').style.display = 'none';
+  document.getElementById('velTrueResult').style.display = 'none';
+  document.getElementById('velTrueResult').className = 'true-result';
+  document.getElementById('btnVelTrueReset').style.display = 'none';
+  schedRecalc();
+}
+
+function solveVelBC() {
+  const btn      = document.getElementById('btnVelTrue');
+  const resultEl = document.getElementById('velTrueResult');
+  const resetBtn = document.getElementById('btnVelTrueReset');
+  const rangeYds = parseInt  (document.getElementById('velTrueRange').value) || 0;
+  const obsFps   = parseFloat(document.getElementById('velTrueFps').value)   || 0;
+  const V0       = parseFloat(document.getElementById('fps').value) || 0;
+  const elevFt   = parseFloat(document.getElementById('elevFt').value) || 0;
+  const tempF    = parseFloat(document.getElementById('tempF').value) || 59;
+  const humidity = parseFloat(document.getElementById('humidity').value) || 0;
+  const pressRaw = parseFloat(document.getElementById('pressure').value);
+  const pressInHg= pressRaw > 0 ? pressRaw : stdPressureInHgFromElevation(elevFt);
+  resultEl.style.display = 'none';
+  resultEl.className = 'true-result';
+  const fail = (msg) => {
+    resultEl.innerHTML = msg;
+    resultEl.className = 'true-result err';
+    resultEl.style.display = 'block';
+    btn.disabled = false;
+  };
+  if (rangeYds < 10)   return fail('Enter a valid range (\u2265 10 yds).');
+  if (obsFps   <= 0)   return fail('Enter the observed velocity in fps.');
+  if (obsFps   >= V0)  return fail('Observed fps must be less than muzzle velocity.');
+  if (V0       <= 0)   return fail('Set muzzle velocity in the Bullet section first.');
+  btn.disabled = true;
+  const rho = airDensityLbFt3(tempF, pressInHg, humidity);
+  const sos = speedOfSoundFps(tempF);
+  function velAtRange(bc) {
+    const tr = buildTrajectory(V0, bc, dragModel, rangeYds, {rho, sos}, {useCor: false});
+    return tr[rangeYds] ? tr[rangeYds].vel : null;
+  }
+  let lo = 0.040, hi = 0.650;
+  const vLo = velAtRange(lo);
+  const vHi = velAtRange(hi);
+  if (vLo === null || vHi === null) { btn.disabled = false; return fail('Trajectory failed \u2014 check inputs.'); }
+  if (obsFps < vLo) { btn.disabled = false; return fail(`${obsFps} fps is below minimum model output (${vLo.toFixed(0)} fps at BC=0.040). Check range.`); }
+  if (obsFps > vHi) { btn.disabled = false; return fail(`${obsFps} fps exceeds maximum model output (${vHi.toFixed(0)} fps at BC=0.650). Check range.`); }
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const v   = velAtRange(mid);
+    if (v === null) break;
+    if (v < obsFps) lo = mid; else hi = mid;
+    if (hi - lo < 0.00005) break;
+  }
+  const solvedBC = (lo + hi) / 2;
+  const checkVel = velAtRange(solvedBC) || 0;
+  if (truedBC === null) trueLibBC = parseFloat(document.getElementById('bc').value) || null;
+  truedBC = solvedBC;
+  document.getElementById('bc').value = solvedBC.toFixed(3);
+  document.getElementById('bc').classList.add('bc-trued');
+  const libBCStr = trueLibBC ? ` (library: ${trueLibBC.toFixed(3)})` : '';
+  resultEl.innerHTML =
+    `<strong>Trued BC: ${solvedBC.toFixed(3)}</strong>${libBCStr}<br>` +
+    `Solving for ${obsFps} fps at ${rangeYds} yds (model: ${checkVel.toFixed(0)} fps).<br>` +
+    `Wind holds and velocity column updated. BC highlighted while active.`;
+  resultEl.className = 'true-result ok';
+  resultEl.style.display = 'block';
+  resetBtn.style.display = 'block';
+  btn.disabled = false;
+  schedRecalc();
+}
+
+function resetVelTruing() {
+  truedBC = null;
+  if (trueLibBC !== null) {
+    document.getElementById('bc').value = trueLibBC.toFixed(3);
+    trueLibBC = null;
+  }
+  document.getElementById('bc').classList.remove('bc-trued');
+  document.getElementById('velTrueFps').value = '';
+  document.getElementById('velTrueResult').style.display = 'none';
+  document.getElementById('velTrueResult').className = 'true-result';
+  document.getElementById('btnVelTrueReset').style.display = 'none';
+  schedRecalc();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WIRE INPUT EVENTS
+═══════════════════════════════════════════════════════════ */
+function wireInputs() {
+  ['bc','grain','fps','rStart','rEnd','rStep','elevFt','latDeg','tempF','humidity','pressure',
+   'azimuthDeg','twistIn','bulletDia','bulletLen','w1','w2','w3','cardTitle']
+    .forEach(id => document.getElementById(id).addEventListener('input', schedRecalc));
+  ['twistDir','chkCor','chkSpin']
+    .forEach(id => document.getElementById(id).addEventListener('change', schedRecalc));
+  document.getElementById('btnLocate').addEventListener('click', locateMe);
+  document.getElementById('btnZip').addEventListener('click', lookupZip);
+  document.getElementById('zipCode').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') lookupZip();
+  });
+  document.getElementById('btnSaveSettings').addEventListener('click', saveSettings);
+  document.getElementById('btnTrue').addEventListener('click', solveBC);
+  document.getElementById('btnTrueReset').addEventListener('click', resetTruing);
+  document.getElementById('btnVelTrue').addEventListener('click', solveVelBC);
+  document.getElementById('btnVelTrueReset').addEventListener('click', resetVelTruing);
+  document.querySelectorAll('input[name="unit"]').forEach(r =>
+    r.addEventListener('change', updateTrueUnitLbl));
+  updateTrueUnitLbl();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════════════════════ */
+populateLibrary();
+initToggles();
+wireInputs();
+initCollapsibleScards();
+syncCardLayoutClass();
+initClock();   // pickHalfHour(DEFAULT_WIND_CLOCK_SLOT) → recalc()
+initTrueClock();
+loadSettingsFromStorage();
+</script>
+</body>
+</html>
