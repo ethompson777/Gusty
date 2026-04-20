@@ -577,6 +577,118 @@
       width: 230px;
     }
 
+    /* ── MOBILE TAB BAR ─────────────────────────────────────── */
+    .mobile-tabs { display: none; }
+
+    /* ── MOBILE (≤ 860px) ───────────────────────────────────── */
+    @media screen and (max-width: 860px) {
+      html, body {
+        height: auto;
+        max-height: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+      .layout { overflow: visible; min-height: 0; }
+      .layout-inner {
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        overflow: visible;
+        padding: 0 0 64px;
+      }
+
+      /* Sidebars become full-width stacked sections */
+      .sidebar, .sidebar-right {
+        width: 100%;
+        min-width: 0;
+        border-radius: 0;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        margin-top: 0;
+      }
+
+      /* Content area */
+      .content {
+        flex: none;
+        width: 100%;
+        min-width: 0;
+        padding: 16px 12px 24px;
+        align-items: stretch;
+      }
+      .content-grid { width: 100%; }
+
+      /* DOPE card fills width; height expands to content */
+      .dope-card.card-horiz,
+      .dope-card.card-vert {
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+      }
+      .dc-body { overflow: visible; height: auto; }
+
+      /* Truing panels stack vertically, full width */
+      .content-bottom {
+        flex-direction: column;
+        margin-top: 24px;
+        width: 100%;
+      }
+      .truing-panel { flex: none; width: 100%; }
+
+      /* ── Tab visibility ──────────────────────────────────── */
+      /* Defaults: hide everything, tabs reveal per selection  */
+      .sidebar,
+      .sidebar-right { display: none; }
+      .content { display: none; }
+
+      body[data-tab="inputs"] .sidebar,
+      body[data-tab="inputs"] .sidebar-right { display: flex; }
+
+      body[data-tab="card"] .content { display: flex; }
+      body[data-tab="card"] .content-bottom { display: none; }
+
+      body[data-tab="truing"] .content { display: flex; }
+      body[data-tab="truing"] .dope-card { display: none; }
+      body[data-tab="truing"] .print-btn { display: none; }
+
+      /* ── Tab bar ─────────────────────────────────────────── */
+      .mobile-tabs {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: var(--panel);
+        border-top: 1px solid var(--border);
+        z-index: 1000;
+      }
+      .mtab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        background: none;
+        border: none;
+        color: var(--dim);
+        cursor: pointer;
+        padding: 0;
+        transition: color 0.15s;
+      }
+      .mtab.active { color: var(--accent); }
+      .mtab-icon {
+        font-size: 18px;
+        line-height: 1;
+      }
+      .mtab-label {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+    }
+
     /* ── PRINT MEDIA ─────────────────────────────────────── */
     @media print {
       html, body {
@@ -1074,6 +1186,22 @@
 
   </div><!-- /layout-inner -->
 </div><!-- /layout -->
+
+<!-- ── MOBILE TAB BAR ──────────────────────────────────── -->
+<nav class="mobile-tabs" id="mobileTabs">
+  <button class="mtab" data-tab="inputs" onclick="switchTab('inputs')">
+    <span class="mtab-icon">⚙</span>
+    <span class="mtab-label">Inputs</span>
+  </button>
+  <button class="mtab" data-tab="card" onclick="switchTab('card')">
+    <span class="mtab-icon">◫</span>
+    <span class="mtab-label">Card</span>
+  </button>
+  <button class="mtab" data-tab="truing" onclick="switchTab('truing')">
+    <span class="mtab-icon">◎</span>
+    <span class="mtab-label">Truing</span>
+  </button>
+</nav>
 
 <script>
 'use strict';
@@ -2463,6 +2591,23 @@ function wireInputs() {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   MOBILE TAB SWITCHING
+═══════════════════════════════════════════════════════════ */
+function switchTab(tab) {
+  document.body.setAttribute('data-tab', tab);
+  document.querySelectorAll('.mtab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  if (tab === 'card') fitDOPECard();
+}
+
+function initMobileTabs() {
+  if (window.innerWidth <= 860) {
+    switchTab('inputs');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
    BOOT
 ═══════════════════════════════════════════════════════════ */
 populateLibrary();
@@ -2473,6 +2618,7 @@ syncCardLayoutClass();
 initClock();   // pickHalfHour(DEFAULT_WIND_CLOCK_SLOT) → recalc()
 initTrueClock();
 loadSettingsFromStorage();
+initMobileTabs();
 </script>
 </body>
 </html>
